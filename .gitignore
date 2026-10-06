@@ -1,0 +1,15 @@
+node_modules/
+*.tmp
+*.tmp.*
+*.log
+.DS_Store
+Thumbs.db
+
+# test corpora are downloaded on demand (mcp/scripts/fetch-corpus.ts)
+mcp/test/corpus/
+# scratch output from local runs
+mcp/.scratch/
+mcp/coverage/
+
+# Claude Code local settings
+.claude/settings.local.json

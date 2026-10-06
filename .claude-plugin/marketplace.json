@@ -1,0 +1,16 @@
+{
+  "name": "defold-tools",
+  "owner": {
+    "name": "Infuscy"
+  },
+  "description": "Defold game engine tooling for Claude Code",
+  "plugins": [
+    {
+      "name": "defold",
+      "source": "./plugins/defold",
+      "description": "Skills, MCP tools and hooks for building Defold games: API/manual lookup, safe scene-file editing with validation, build/run/logs/screenshots.",
+      "category": "development",
+      "tags": ["defold", "gamedev", "lua"]
+    }
+  ]
+}

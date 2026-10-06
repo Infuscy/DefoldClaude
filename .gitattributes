@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+# Byte-exact fixtures: never normalize line endings
+mcp/test/fixtures/** -text
+
+# Generated bundles: keep diffs quiet
+plugins/defold/dist/** linguist-generated=true -diff
+
+*.png binary
+*.zip binary

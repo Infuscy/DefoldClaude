@@ -1,0 +1,20 @@
+{
+  "name": "defold",
+  "displayName": "Defold",
+  "version": "0.1.0",
+  "description": "Make Defold games with Claude: version-matched Lua API and manuals, safe editing of .collection/.go/.gui files, validation after every edit, and build/run/logs/screenshot tools through the Defold editor or headless bob.",
+  "author": {
+    "name": "Infuscy"
+  },
+  "repository": "https://github.com/Infuscy/DefoldClaude",
+  "keywords": ["defold", "game-engine", "lua", "gamedev", "mcp"],
+  "userConfig": {
+    "defold_path": {
+      "type": "directory",
+      "title": "Defold installation folder",
+      "description": "Folder that contains Defold.exe (or Defold.app/Contents/Resources) and the config file. Leave empty to auto-detect from the Defold editor's installations list.",
+      "required": false,
+      "default": ""
+    }
+  }
+}

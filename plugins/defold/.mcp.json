@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "defold": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/server.mjs"],
+      "env": {
+        "DEFOLD_HOME": "${user_config.defold_path}",
+        "DEFOLD_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}",
+        "DEFOLD_CACHE_DIR": "${CLAUDE_PLUGIN_DATA}/cache"
+      }
+    }
+  }
+}
