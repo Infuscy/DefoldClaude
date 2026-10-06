@@ -15,6 +15,7 @@ import { validateTool } from './tools/validate.js';
 import { newProjectTool } from './tools/newProject.js';
 import { logInfo } from './util/log.js';
 import { shutdownRuntime } from './runtime/lifecycle.js';
+import { cleanupOrphanEngines } from './runtime/processes.js';
 
 export const SERVER_VERSION = '0.1.0';
 
@@ -59,6 +60,8 @@ async function main(): Promise<void> {
   process.stdin.on('close', () => void stop(0));
   await server.connect(transport);
   logInfo(`Defold MCP server ${SERVER_VERSION} ready`);
+  // Engines left behind by a crashed earlier session would keep windows open; clean them up quietly.
+  void cleanupOrphanEngines().catch(() => {});
 }
 
 const isEntry = (() => {

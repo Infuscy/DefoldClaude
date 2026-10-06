@@ -13,3 +13,6 @@ mcp/coverage/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# plugin eval results
+plugins/defold/evals/results/
