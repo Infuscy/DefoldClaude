@@ -17,8 +17,22 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
 - `npm run check` — typecheck + unit tests + rebuild bundles. Always run before committing; commit the
   regenerated `plugins/defold/dist/*.mjs` together with the source change (CI fails on stale bundles).
 - `npx tsx scripts/smoke.ts <projectDir> <tool> '<json args>'` — call a tool through the real stdio bundle.
+- `npx tsx scripts/e2e-run.ts "<project>" bob|editor [--in-place]` — build/run/logs/screenshot/reload loop;
+  `scripts/e2e-edit.ts "<project>"` — edit_resource → validate → bob build; `scripts/e2e-orphan.ts`.
+- `npm run fetch:corpus` then `npm run test:corpus` — byte-identical round-trip and zero-false-positive gates
+  on Defold's save_data_project, defold/examples, builtins and the local example project.
+- `npx tsx scripts/check-skills.ts` — every API/tool named in skills must exist (needs local Defold).
 - `claude plugin validate --strict plugins/defold` and `claude plugin validate --strict .` (repo root).
 - Local try-out: `claude --plugin-dir plugins/defold`, then `/mcp` should list `plugin:defold:defold`.
+
+## Generated data (commit the outputs)
+- `scripts/gen-schema.ts [tag]` → `src/ddf/schema.generated.json` (messages/enums from Defold's .proto files;
+  extension→message map lives in the script).
+- `scripts/gen-gameproject.ts` → `src/ddf/gameproject.generated.json` (bob meta.properties) and
+  `src/ddf/builtins.generated.json` (from the local editor jar).
+- `scripts/gen-fieldorder.ts` → `src/ddf/fieldorder.generated.json` (editor field order learned from corpus).
+- `scripts/gen-api-core.ts` → `plugins/defold/skills/defold/references/api-core.md`.
+  Regenerate all of them when targeting a new Defold version.
 
 ## Rules
 - Never modify user Defold projects in tests; copy them to a temp dir first. The reference project is

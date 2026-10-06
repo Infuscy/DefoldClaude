@@ -17,3 +17,6 @@ mcp/coverage/
 
 # plugin eval results
 plugins/defold/evals/results/
+
+# downloaded .proto sources for schema generation
+mcp/scripts/.proto-cache/

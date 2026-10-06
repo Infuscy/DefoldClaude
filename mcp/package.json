@@ -11,7 +11,7 @@
     "build": "node esbuild.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --dir test/unit",
-    "test:corpus": "vitest run --dir test/corpus",
+    "test:corpus": "vitest run --dir test/corpus-tests",
     "test:integration": "vitest run --dir test/integration",
     "gen:schema": "tsx scripts/gen-schema.ts",
     "fetch:corpus": "tsx scripts/fetch-corpus.ts",
