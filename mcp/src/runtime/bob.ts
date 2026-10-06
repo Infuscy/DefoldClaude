@@ -7,6 +7,7 @@ import { projectDependencies } from '../env/project.js';
 import { isDir } from '../util/fsx.js';
 import { AGENT_BUILD_DIR } from './enginebin.js';
 import { cleanBobLog, parseBobOutput, type Issue } from './issues.js';
+import { ZipFile } from '../env/zip.js';
 import { runCommand } from './processes.js';
 
 export interface BobRun {
@@ -39,10 +40,15 @@ export async function runBob(install: DefoldInstall, project: DefoldProject, opt
 
   const bobArgs = ['--root', project.root, '--output', AGENT_BUILD_DIR];
   if (options.variant) bobArgs.push('--variant', options.variant);
-  const needsEngine = hasNativeExtensions(project);
+  const needsEngine = !options.commands.every((c) => c === 'resolve' || c === 'distclean') && (await hasNativeExtensions(project));
   const platform = options.platform ?? (needsEngine ? hostPlatform() : undefined);
   if (platform) bobArgs.push('--platform', platform);
-  if (needsEngine || options.buildServer) bobArgs.push('--build-server', options.buildServer ?? DEFAULT_BUILD_SERVER);
+  if (needsEngine || options.buildServer) {
+    bobArgs.push('--build-server', options.buildServer ?? DEFAULT_BUILD_SERVER);
+    // Keep our custom engine apart from the editor's (which lives in build/<platform>).
+    // bob appends /<platform>/ itself → build/agent/<platform>/dmengine(.exe)
+    if (!options.commands.includes('bundle')) bobArgs.push('--binary-output', AGENT_BUILD_DIR);
+  }
   if (options.archive) bobArgs.push('--archive');
   if (options.bundleOutput) bobArgs.push('--bundle-output', options.bundleOutput);
   if (options.extra) bobArgs.push(...options.extra);
@@ -83,7 +89,30 @@ export async function runBob(install: DefoldInstall, project: DefoldProject, opt
 }
 
 /** Native extensions (ext.manifest in the project or a fetched library) need a custom engine from the build server. */
-export function hasNativeExtensions(project: DefoldProject): boolean {
+export async function hasNativeExtensions(project: DefoldProject): Promise<boolean> {
+  if (hasExtensionInProject(project)) return true;
+  const lib = path.join(project.root, '.internal', 'lib');
+  let zips: string[] = [];
+  try {
+    zips = fs.readdirSync(lib).filter((f) => f.endsWith('.zip'));
+  } catch {
+    return false;
+  }
+  for (const z of zips) {
+    let zip: ZipFile | undefined;
+    try {
+      zip = await ZipFile.open(path.join(lib, z));
+      if ([...zip.entries.keys()].some((n) => n.endsWith('/ext.manifest') || n === 'ext.manifest')) return true;
+    } catch {
+      // unreadable archive
+    } finally {
+      zip?.close();
+    }
+  }
+  return false;
+}
+
+function hasExtensionInProject(project: DefoldProject): boolean {
   const stack = [project.root];
   const skip = new Set(['build', '.internal', '.git', 'node_modules']);
   let visited = 0;
@@ -113,4 +142,17 @@ export function needsResolve(project: DefoldProject): boolean {
   if (!isDir(lib)) return true;
   const zips = fs.readdirSync(lib).filter((f) => f.endsWith('.zip'));
   return zips.length < deps.length;
+}
+
+/**
+ * Headless build used by the build and run tools: fetch missing libraries first (as its own step, so that
+ * native extensions inside libraries are detected), then build — with the cloud build server when needed.
+ */
+export async function buildHeadless(install: DefoldInstall, project: DefoldProject, options: Omit<BobOptions, 'commands'> = {}): Promise<BobRun> {
+  if (needsResolve(project)) {
+    options.onProgress?.('Fetching library dependencies', 0);
+    const resolved = await runBob(install, project, { ...options, commands: ['resolve'] });
+    if (!resolved.success) return resolved;
+  }
+  return runBob(install, project, { variant: 'debug', ...options, commands: ['build'] });
 }

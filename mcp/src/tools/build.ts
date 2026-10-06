@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { hostPlatform } from '../env/platform.js';
-import { runBob, needsResolve } from '../runtime/bob.js';
+import { buildHeadless, runBob } from '../runtime/bob.js';
 import { editorBob, editorCommand } from '../runtime/editor.js';
 import { AGENT_BUILD_DIR } from '../runtime/enginebin.js';
 import { summarizeIssues, type Issue } from '../runtime/issues.js';
@@ -70,12 +70,10 @@ export const buildTool = defineTool({
       } else {
         const install = requireInstall();
         const progress = (message: string, percent: number) => void ctx.progress(message, percent, 100);
-        let commands: string[];
         let extra: Parameters<typeof runBob>[2] = { commands: [] };
         switch (args.command) {
           case 'build':
-            commands = needsResolve(project) ? ['resolve', 'build'] : ['build'];
-            extra = { commands, variant: args.variant };
+            extra = { commands: [], variant: args.variant };
             break;
           case 'resolve':
             extra = { commands: ['resolve'] };
@@ -92,7 +90,8 @@ export const buildTool = defineTool({
             break;
           }
         }
-        const r = await runBob(install, project, { ...extra, timeoutMs: args.timeout_seconds * 1000, signal: ctx.signal, onProgress: progress });
+        const common = { timeoutMs: args.timeout_seconds * 1000, signal: ctx.signal, onProgress: progress };
+        const r = args.command === 'build' ? await buildHeadless(install, project, { variant: args.variant, ...common }) : await runBob(install, project, { ...extra, ...common });
         success = r.success;
         issues = r.issues;
         if (!success && !issues.length) detail = r.log.split('\n').slice(-20).join('\n');

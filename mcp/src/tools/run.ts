@@ -1,4 +1,4 @@
-import { runBob, needsResolve } from '../runtime/bob.js';
+import { buildHeadless, runBob } from '../runtime/bob.js';
 import { editorCommand, editorConsole } from '../runtime/editor.js';
 import {
   attachEditorSession,
@@ -99,12 +99,7 @@ async function start(
   const existing = getSession(project.root);
   if (isRunning(existing)) await stopSession(existing);
   await progress('Building with bob');
-  const build = await runBob(install, project, {
-    commands: needsResolve(project) ? ['resolve', 'build'] : ['build'],
-    variant: 'debug',
-    signal,
-    onProgress: (m, p) => void progress(m, p, 100),
-  });
+  const build = await buildHeadless(install, project, { signal, onProgress: (m, p) => void progress(m, p, 100) });
   if (!build.success) {
     return textResult(`Build FAILED — the game was not started.\n${summarizeIssues(build.issues)}`, { success: false, issues: build.issues });
   }

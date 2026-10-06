@@ -1,6 +1,6 @@
 {
   "name": "defold-mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "MCP server and hooks for the Defold game engine (bundled into plugins/defold/dist)",
   "type": "module",
@@ -21,6 +21,7 @@
   "dependencies": {
     "@modelcontextprotocol/server": "^2.3.1",
     "luaparse": "^0.3.1",
+    "pngjs": "^7.0.0",
     "yaml": "^2.9.1",
     "yauzl": "^3.4.0",
     "zod": "^4.6.5"
@@ -29,6 +30,7 @@
     "@modelcontextprotocol/client": "^2.3.1",
     "@types/luaparse": "^0.2.13",
     "@types/node": "^22.20.5",
+    "@types/pngjs": "^6.0.5",
     "@types/yauzl": "^3.4.0",
     "esbuild": "^0.28.2",
     "protobufjs": "^7.6.6",

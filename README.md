@@ -6,7 +6,7 @@ A Claude Code plugin that makes Claude effective at building games with the [Def
 |---|---|
 | guesses Lua APIs from other engines | looks up the **exact API of your installed Defold version** (`api`), plus the official manuals and examples (`docs`) |
 | corrupts `.collection` / `.go` / `.gui` files (strings inside strings, enums, required fields) | reads and edits them as structured data (`read_resource`, `edit_resource`), validated against Defold's own schemas |
-| can't tell whether its change works | builds, runs, reads logs and Lua tracebacks, takes screenshots, inspects the live scene graph and hot-reloads (`build`, `run`, `logs`, `screenshot`, `inspect`) |
+| can't tell whether its change works | builds, runs, reads logs and Lua tracebacks, takes screenshots, inspects the live scene graph, hot-reloads and even plays the game (`build`, `run`, `logs`, `screenshot`, `inspect`, `input`) |
 
 Every Defold file Claude writes is checked automatically (Lua syntax and common Defold mistakes, scene-file
 schema, broken references), and problems are fed straight back to Claude.
@@ -16,8 +16,10 @@ schema, broken references), and problems are fed straight back to Claude.
 - **Skills**: `defold` (engine model, addressing and messages, lifecycle, Lua rules, GUI/input, physics, animation,
   factories/proxies, rendering, project settings, platforms, pitfalls, generated API cheatsheet) and
   `defold-run-debug` (build → run → observe → fix loop).
-- **Slash commands**: `/defold:build`, `/defold:run`, `/defold:check`, `/defold:new-project`.
-- **MCP server** `defold` with 12 tools:
+- **Slash commands**: `/defold:build`, `/defold:run`, `/defold:check`, `/defold:new-project`,
+  `/defold:setup-bridge`, `/defold:playtest`.
+- **Agent**: `defold-playtester` plays the game (taps, keys, screenshots, logs) and reports findings.
+- **MCP server** `defold` with 13 tools:
 
   | Tool | What it does |
   |---|---|
@@ -31,7 +33,8 @@ schema, broken references), and problems are fed straight back to Claude.
   | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors |
   | `logs` | Incremental engine output with Lua error extraction |
   | `screenshot` | The game window (Windows) or an editor-rendered preview of any scene |
-  | `inspect` | Live scene graph with world positions |
+  | `inspect` | Live scene graph with world positions; `elements=true` lists GUI/game elements with screen bounds |
+  | `input` | Click/tap by element text or coordinates, drag, keys, text, wheel — returns the logs the action caused |
   | `new_project` | Official templates (the empty one works offline) |
 
 - **Hooks**: a SessionStart hook that tells Claude it is in a Defold project, and a PostToolUse hook that validates
@@ -50,7 +53,9 @@ game. Projects with native extensions are built with Defold's cloud build server
 - Node.js 20+ on `PATH` (the MCP server and hooks are plain bundled JavaScript; nothing to `npm install`)
 - The Defold editor installed (it provides Java, bob, the engine and the API docs). It is found automatically through
   the editor's `installations.json`; otherwise set the `defold_path` option.
-- Screenshots of the running game are implemented for Windows. Scene previews work everywhere the editor does.
+- Screenshots of the running game: Windows window capture, or in-engine capture on any platform when the project
+  includes Defold's [Automation Bridge](https://github.com/defold/extension-automation-bridge) extension, which also
+  enables the `input` tool. `/defold:setup-bridge` adds it (debug builds only; built on Defold's cloud build server).
 
 ## Install
 

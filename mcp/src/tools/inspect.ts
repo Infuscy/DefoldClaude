@@ -1,4 +1,6 @@
 import { isRunning, sceneGraph } from '../runtime/engine.js';
+import { bridgeHealth, findElements } from '../runtime/bridge.js';
+import { NO_BRIDGE } from './input.js';
 import { requireProject } from './common.js';
 import { defineTool } from './registry.js';
 import { errorResult, textResult } from './result.js';
@@ -28,6 +30,28 @@ export const inspectTool = defineTool({
     const project = requireProject(args.project);
     const session = await currentSession(project);
     if (!isRunning(session)) return errorResult('The game is not running. Start it with run action=start.');
+    if (args.elements) {
+      if (!(await bridgeHealth(session))) return errorResult(NO_BRIDGE);
+      const q = args.filter ?? '';
+      const [byText, byName] = await Promise.all([
+        q ? findElements(session, { text: q, visible: true, limit: args.max_nodes }) : findElements(session, { visible: true, limit: args.max_nodes }),
+        q ? findElements(session, { name: q, visible: true, limit: args.max_nodes }) : Promise.resolve({ elements: [], matched: 0, total: 0 }),
+      ]);
+      const seen = new Set<string>();
+      const rows: string[] = [];
+      for (const e of [...byText.elements, ...byName.elements]) {
+        if (seen.has(e.id)) continue;
+        seen.add(e.id);
+        const b = e.bounds?.screen;
+        rows.push(
+          `${e.id} ${e.kind ?? ''} ${e.type ?? ''} "${e.name ?? ''}"${e.text ? ` text="${e.text}"` : ''}${b ? ` screen=(${b.x}, ${b.y}, ${b.w}x${b.h})` : ''}${e.enabled === false ? ' disabled' : ''}`,
+        );
+      }
+      return textResult(
+        `${rows.length} visible element(s)${q ? ` matching "${q}"` : ''} (screen coordinates: pixels from the top-left of the window; pass the id or text as input target):\n${rows.join('\n')}`,
+        { count: rows.length },
+      );
+    }
     const root = (await sceneGraph(session)) as SceneNode;
     const filter = args.filter?.toLowerCase();
     const lines: string[] = [];

@@ -25,6 +25,19 @@ with bob into `build/agent` and launch `dmengine`. `status` shows which applies.
    `init` is not), or `run action=restart` after structural changes (new objects, collections, game.project).
 5. When done, `run action=stop` unless the user wants to keep playing.
 
+## Playing the game
+
+With Defold's Automation Bridge in the project (debug builds only; `/defold:setup-bridge` adds it after the user
+agrees), you can interact with the running game:
+- `inspect elements=true` lists visible game objects, components and GUI nodes with screen bounds and text.
+- `input action=click target="Play"` clicks an element by text or name. `input action=click x=0.5 y=0.8
+  normalized=true` clicks a spot you see in a screenshot. `input action=key keys=["KEY_SPACE"] hold=0.5` presses
+  keys. Add `screenshot=true` to see the result. Each call returns the log lines the action produced.
+- Screenshots are then taken inside the engine (exact frame, any platform).
+Without the bridge, `input` explains how to add it; screenshots fall back to window capture (Windows).
+For multi-step playtests, delegate to the `defold-playtester` agent so screenshots and logs stay out of the main
+conversation.
+
 Add temporary `print("[dbg] ...", value)` lines to trace logic, read them with `logs grep=[dbg]`, then remove them.
 
 ## Reading common errors

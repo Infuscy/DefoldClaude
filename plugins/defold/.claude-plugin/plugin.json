@@ -1,7 +1,7 @@
 {
   "name": "defold",
   "displayName": "Defold",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Make Defold games with Claude: version-matched Lua API and manuals, safe editing of .collection/.go/.gui files, validation after every edit, and build/run/logs/screenshot tools through the Defold editor or headless bob.",
   "author": {
     "name": "Infuscy"

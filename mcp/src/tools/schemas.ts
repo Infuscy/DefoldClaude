@@ -72,6 +72,10 @@ export const inspectInput = z.object({
   max_depth: z.number().int().min(1).max(64).default(12),
   max_nodes: z.number().int().min(1).max(2000).default(300),
   transforms: z.boolean().default(true).describe('Include positions/rotations/scales.'),
+  elements: z
+    .boolean()
+    .default(false)
+    .describe('List interactive elements with screen bounds (game objects, components and GUI nodes) via the Automation Bridge, for use with the input tool.'),
 });
 
 export const apiInput = z.object({
@@ -138,4 +142,26 @@ export const newProjectInput = z.object({
     .describe('Template id: empty, mobile, desktop, basic-3d, platformer, html5-poki, native-extension, rive, or a tutorial/sample id from the list.'),
   directory: z.string().describe('Empty or non-existent folder to create the project in.'),
   title: z.string().optional().describe('Project title written to game.project.'),
+});
+
+export const inputInput = z.object({
+  project,
+  action: z.enum(['click', 'drag', 'key', 'text', 'wheel']).describe('click/tap, drag (to to_target or to_x/to_y), key presses, typed text, or mouse wheel.'),
+  target: z
+    .string()
+    .optional()
+    .describe('Element to act on: its visible text or name (e.g. "Play", "/player", "logo") or an element id from inspect. Alternative to x/y.'),
+  x: z.number().optional().describe('Window x (pixels from the left, or a 0..1 fraction with normalized=true).'),
+  y: z.number().optional().describe('Window y (pixels from the top, or a 0..1 fraction with normalized=true).'),
+  normalized: z.boolean().default(false).describe('Treat x/y/to_x/to_y as fractions of the window, e.g. read off a screenshot.'),
+  to_target: z.string().optional().describe('Drag destination element.'),
+  to_x: z.number().optional(),
+  to_y: z.number().optional(),
+  keys: z.array(z.string()).optional().describe('Keys for action=key, e.g. ["KEY_SPACE"] or ["LEFT", "LEFT"].'),
+  text: z.string().optional().describe('Text for action=text.'),
+  hold: z.number().min(0).max(10).optional().describe('Seconds to hold the keys down.'),
+  steps: z.number().int().min(-64).max(64).optional().describe('Wheel detents for action=wheel (+up, -down).'),
+  duration: z.number().min(0).max(5).default(0.3).describe('Drag duration in seconds.'),
+  wait_ms: z.number().int().min(0).max(10_000).default(400).describe('Wait after the input before reporting logs.'),
+  screenshot: z.boolean().default(false).describe('Also return a screenshot taken after the input.'),
 });

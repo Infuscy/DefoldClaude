@@ -27,7 +27,8 @@ docs of the Defold version actually installed, and use `docs` for concepts.
 | Run, stop, hot-reload, physics debug | `run` |
 | Engine output, prints, Lua errors | `logs` |
 | See the game / a scene | `screenshot` (`source=game` or `source=preview` with `path`) |
-| Live object positions and components | `inspect` |
+| Live object positions and components | `inspect` (`elements=true` lists GUI/game elements with screen bounds) |
+| Click, drag, press keys in the running game | `input` (needs the Automation Bridge: `/defold:setup-bridge`) |
 | New project from a template | `new_project` |
 
 The plugin also validates Defold files automatically after every Write/Edit and reports problems.
@@ -44,8 +45,10 @@ The plugin also validates Defold files automatically after every Write/Edit and 
    [references/file-formats.md](references/file-formats.md) exactly when writing by hand.
 5. `build`. It is fast through the editor and takes a few seconds headless. Fix every error, then
    `run action=start` and read the reported Lua errors and logs.
-6. Verify the behaviour with `screenshot`, `inspect` and `logs`. After small script changes, use
-   `run action=reload` (hot reload) instead of restarting. Stop the game when done (`run action=stop`).
+6. Verify the behaviour with `screenshot`, `inspect` and `logs`, and with `input` to actually play it when the
+   project has the Automation Bridge. After small script changes, use `run action=reload` (hot reload) instead of
+   restarting. Stop the game when done (`run action=stop`). For longer playtests, delegate to the
+   `defold-playtester` agent (`/defold:playtest`).
 
 ## Core model
 
