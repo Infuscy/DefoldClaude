@@ -5,12 +5,17 @@ import { onShutdown } from '../runtime/lifecycle.js';
 
 let jar: { path: string; zip: Promise<ZipFile> } | undefined;
 
-export async function readBuiltin(install: DefoldInstall, resource: string): Promise<string> {
-  if (!install.jarPath) throw new Error('No Defold jar available to read builtins from.');
+/** The editor jar, opened once per session and shared. */
+export async function openJar(install: DefoldInstall): Promise<ZipFile> {
+  if (!install.jarPath) throw new Error('No Defold jar available.');
   if (!jar || jar.path !== install.jarPath) {
     jar = { path: install.jarPath, zip: ZipFile.open(install.jarPath) };
   }
-  const zip = await jar.zip;
+  return jar.zip;
+}
+
+export async function readBuiltin(install: DefoldInstall, resource: string): Promise<string> {
+  const zip = await openJar(install);
   return zip.readText(resource.replace(/^\/+/, ''));
 }
 

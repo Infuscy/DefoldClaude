@@ -43,8 +43,10 @@ export function locateDefold(options: { refresh?: boolean } = {}): LocateResult 
 
   let install: DefoldInstall | undefined;
 
-  const envHome = process.env.DEFOLD_HOME;
-  if (usableEnv(envHome)) install = tryRoot(envHome, 'env');
+  // EVAL_DEFOLD_HOME: `claude plugin eval` only forwards EVAL_* variables to its isolated runs.
+  for (const envHome of [process.env.DEFOLD_HOME, process.env.EVAL_DEFOLD_HOME]) {
+    if (!install && usableEnv(envHome)) install = tryRoot(envHome, 'env');
+  }
 
   if (!install) {
     for (const support of defoldSupportDirs()) {

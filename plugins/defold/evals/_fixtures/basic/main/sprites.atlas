@@ -1,0 +1,7 @@
+images {
+  image: "/assets/hero.png"
+}
+images {
+  image: "/assets/coin.png"
+}
+extrude_borders: 2
