@@ -1,0 +1,38 @@
+ 50% Working
+ 50% Reading classes
+2026-10-07 00:43:23 INFO     
+ 75% Reading classes
+ 83% Reading classes
+ 83% Cleaning engine
+ 88% Cleaning engine
+ 92% Cleaning engine
+ 92% Reading tasks
+100% Reading tasks
+ERROR: main/main.script:3: 'com.dynamo.bob.CompileExceptionError: missing ')' at 'end''
+
+2026-10-07 00:43:23 SEVERE  missing ')' at 'end' 
+2026-10-07 00:43:23 SEVERE  com.dynamo.bob.pipeline.LuaBuilder.getLuaScannerResult(LuaBuilder.java:125) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.pipeline.LuaBuilder.create(LuaBuilder.java:138) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:125) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.ProtoBuilder.createSubTasks(ProtoBuilder.java:160) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.ProtoBuilder.createSubTasks(ProtoBuilder.java:149) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.pipeline.GameObjectBuilder.create(GameObjectBuilder.java:117) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:106) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.pipeline.CollectionBuilder.create(CollectionBuilder.java:129) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:106) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.pipeline.GameProjectBuilder.create(GameProjectBuilder.java:205) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createTasks(Project.java:632) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.createAndRunTasks(Project.java:1881) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.doBuild(Project.java:2074) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Project.build(Project.java:817) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Bob.invoke(Bob.java:987) 
+2026-10-07 00:43:24 SEVERE  com.dynamo.bob.Bob.main(Bob.java:1067) 
+2026-10-07 00:43:24 SEVERE  missing ')' at 'end' 

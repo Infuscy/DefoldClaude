@@ -1,0 +1,39 @@
+ 50% Working
+ 50% Reading classes
+2026-10-07 00:43:36 INFO     
+ 75% Reading classes
+ 83% Reading classes
+ 83% Cleaning engine
+ 88% Cleaning engine
+ 92% Cleaning engine
+ 92% Reading tasks
+100% Reading tasks
+ERROR: build/agent/_generated_aea224edd9b1b5d3.sprite:0: 'com.dynamo.bob.CompileExceptionError: the texture '/main/missing.atlas' can't be found'
+
+2026-10-07 00:43:36 SEVERE  the texture '/main/missing.atlas' can't be found 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.pipeline.BuilderUtil.checkResource(BuilderUtil.java:47) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:124) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.ProtoBuilder.createSubTasks(ProtoBuilder.java:160) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.ProtoBuilder.createSubTasks(ProtoBuilder.java:149) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.ProtoBuilder.create(ProtoBuilder.java:191) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:106) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.pipeline.GameObjectBuilder.create(GameObjectBuilder.java:146) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:106) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.pipeline.CollectionBuilder.create(CollectionBuilder.java:129) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Builder.createSubTask(Builder.java:106) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.pipeline.GameProjectBuilder.create(GameProjectBuilder.java:205) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:560) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTask(Project.java:532) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createTasks(Project.java:632) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.createAndRunTasks(Project.java:1881) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.doBuild(Project.java:2074) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Project.build(Project.java:817) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Bob.invoke(Bob.java:987) 
+2026-10-07 00:43:36 SEVERE  com.dynamo.bob.Bob.main(Bob.java:1067) 
+2026-10-07 00:43:36 SEVERE  the texture '/main/missing.atlas' can't be found 
