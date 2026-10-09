@@ -88,10 +88,23 @@ export function applyEdits(text: string, messageType: string | undefined, ops: E
   return current;
 }
 
+/** Thrown when a set/insert path runs through a singular field that does not exist yet; carries the splice that adds it empty. */
+class MissingParent {
+  constructor(readonly splice: Splice) {}
+}
+
 function editDocument(text: string, messageType: string | undefined, segs: Segment[], op: EditOp, docLevel: number): string {
-  const { root } = parseTextFormat(text);
-  const splices = editMessage(text, root, messageType, segs, op, docLevel, '', true);
-  return applySplices(text, splices);
+  let current = text;
+  for (let created = 0; ; created++) {
+    const { root } = parseTextFormat(current);
+    try {
+      return applySplices(current, editMessage(current, root, messageType, segs, op, docLevel, '', true));
+    } catch (e) {
+      if (!(e instanceof MissingParent)) throw e;
+      if (created >= segs.length) throw new SelectorError(`Could not create the missing fields along "${op.path}".`);
+      current = applySplices(current, [e.splice]);
+    }
+  }
 }
 
 function matchOccurrences(occ: FieldNode[], seg: Segment): FieldNode[] {
@@ -139,6 +152,12 @@ function editMessage(
 
   // Descend into a nested message or an embedded document.
   if (rest.length) {
+    // A path through an absent singular field (embedded `data`, `position`, …) creates it empty, then continues.
+    if (!occurrences.length && !seg!.filter && op.op !== 'remove' && fs && fs.label !== 'repeated' && (fs.kind === 'message' || isEmbeddedDataField(messageType, seg!.name))) {
+      const fieldIndent = isRoot ? '' : indent;
+      const empty = fs.kind === 'message' ? `${fieldIndent}${seg!.name} {\n${fieldIndent}}\n` : `${fieldIndent}${seg!.name}: ""\n`;
+      throw new MissingParent(insertOrdered(text, msg, messageType, fs, empty, isRoot));
+    }
     if (!matched.length) {
       throw new SelectorError(`Nothing matches "${seg!.name}${seg!.filter ? `[${seg!.filter.key ?? ''}${seg!.filter.key ? '=' : ''}${seg!.filter.value ?? seg!.filter.index ?? '*'}]` : ''}".${describeOccurrences(occurrences)}`);
     }

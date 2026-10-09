@@ -96,6 +96,26 @@ describe('applyEdits', () => {
     );
   });
 
+  it('creates missing embedded data and messages along a path, so nested values can be added in small steps', () => {
+    const sprite = {
+      id: 'sprite',
+      type: 'sprite',
+      data: { default_animation: 'icon_180', material: '/builtins/materials/sprite.material', textures: [{ sampler: 'texture_sampler', texture: '/main/main.atlas' }] },
+    };
+    const nested = applyEdits(MAIN, COLLECTION_TYPE, [
+      { op: 'insert', path: '/embedded_instances', value: { id: 'enemy', data: { embedded_components: [sprite] }, position: { x: 100, y: 200 } } },
+    ]);
+    const stepwise = applyEdits(MAIN, COLLECTION_TYPE, [
+      { op: 'insert', path: '/embedded_instances', value: { id: 'enemy' } },
+      { op: 'insert', path: '/embedded_instances[id=enemy]/data/embedded_components', value: sprite },
+      { op: 'set', path: '/embedded_instances[id=enemy]/position/x', value: 100 },
+      { op: 'set', path: '/embedded_instances[id=enemy]/position/y', value: 200 },
+    ]);
+    expect(stepwise).toBe(nested);
+    expect(valid('/main/main.collection', stepwise)).toEqual([]);
+    expect(() => applyEdits(MAIN, COLLECTION_TYPE, [{ op: 'remove', path: '/embedded_instances[id=go]/rotation/x' }])).toThrow(/Nothing matches "rotation"/);
+  });
+
   it('sets a script property override on a referenced instance', () => {
     const text = 'name: "level"\ninstances {\n  id: "enemy"\n  prototype: "/main/enemy.go"\n}\n';
     const out = applyEdits(text, COLLECTION_TYPE, [

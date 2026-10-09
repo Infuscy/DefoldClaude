@@ -137,6 +137,9 @@ The plugin also validates Defold files automatically after every Write/Edit and 
 - Prefer `edit_resource`. It decodes embedded game objects and components (strings inside strings),
   validates against Defold's schema, writes editor-identical text and returns a diff. Use
   `read_resource describe=true` on a path with the right extension to see the fields of a type.
+  Add nested content in small ops rather than one deeply nested value (deep JSON is easy to
+  mis-bracket): insert the game object (`{"id": "enemy"}`), then each component at
+  `/embedded_instances[id=enemy]/data/embedded_components`. Missing `data` and `position` are created.
 - By hand: use `"/absolute/paths"`, keep ids unique (instances per collection, components per game
   object, nodes per GUI), and keep `children` and `parent` references valid. Embedded data must be
   escaped exactly as shown in [references/file-formats.md](references/file-formats.md). To avoid escaping

@@ -20,7 +20,7 @@ export const editResourceTool = defineTool({
   name: 'edit_resource',
   title: 'Edit Defold resource',
   description:
-    `Safely edit (or create) a protobuf-text resource such as .collection, .go, .gui or .atlas using set/insert/remove operations on selectors like /embedded_instances[id=player]/position/x. Handles the nested escaping of embedded game objects and components, validates against the Defold schema before writing, keeps untouched text unchanged and returns a diff. Prefer this over hand-editing embedded data strings.`,
+    `Safely edit (or create) a protobuf-text resource such as .collection, .go, .gui or .atlas using set/insert/remove operations on selectors like /embedded_instances[id=player]/position/x. Handles the nested escaping of embedded game objects and components, validates against the Defold schema before writing, keeps untouched text unchanged and returns a diff. Prefer this over hand-editing embedded data strings. Build nested content in small steps rather than one deeply nested value: ops apply in order and missing data/position fields are created, e.g. insert {"id":"enemy"} into /embedded_instances, then insert the sprite into /embedded_instances[id=enemy]/data/embedded_components. If a call is rejected as invalid JSON, split it instead of resending it.`,
   inputSchema: editResourceInput,
   annotations: { readOnlyHint: false },
   async handler(args) {
