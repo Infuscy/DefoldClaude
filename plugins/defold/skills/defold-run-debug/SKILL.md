@@ -15,7 +15,9 @@ with bob into `build/agent` and launch `dmengine`. `status` shows which applies.
    without a file; look at the collections and game objects that embed that component type.
 2. `run action=start` builds, launches and returns the first log lines plus every Lua error with `file:line` and a
    traceback. Fix runtime errors before anything else.
-3. Observe:
+3. Observe. After any visual change, take a screenshot before you say it works. No errors does not mean the
+   player can see the result (text the same colour as the background, objects off-screen or behind the
+   background, wrong z).
    - `logs` (pass the returned `cursor` to see only new output; `level=error` for problems; `grep` for your own
      `print` markers),
    - `screenshot` (`source=game`) to see the window,
