@@ -15,7 +15,7 @@ export const buildTool = defineTool({
   name: 'build',
   title: 'Build Defold project',
   description:
-    `Build the Defold project and return structured issues {severity, resource, line, message}. Uses the open Defold editor when it has the project open (fast, same results as the editor), otherwise bob headless into build/agent. command=resolve fetches library dependencies, clean removes build output, bundle creates a platform bundle (platform e.g. wasm-web, x86_64-win32, arm64-android).`,
+    `Build the Defold project and return the issues found (severity, resource, line, message). Uses the open Defold editor when it has the project open (fast, same results as the editor), otherwise bob headless into build/agent. command=resolve fetches library dependencies, clean removes build output, bundle creates a platform bundle (platform e.g. wasm-web, x86_64-win32, arm64-android).`,
   inputSchema: buildInput,
   annotations: { readOnlyHint: false },
   async handler(args, ctx) {
@@ -101,9 +101,8 @@ export const buildTool = defineTool({
       const via = backend.kind === 'editor' ? 'Defold editor' : `bob (output ${AGENT_BUILD_DIR})`;
       const header = `${args.command} ${success ? 'succeeded' : 'FAILED'} via ${via} in ${seconds}s.`;
       const text = [header, summarizeIssues(issues), detail].filter(Boolean).join('\n');
-      const structured = { success, backend: backend.kind, command: args.command, issues, duration_s: Number(seconds) };
       // A failed build is a valid result (the issues are the answer), not a tool failure.
-      return textResult(text, structured);
+      return textResult(text);
     });
   },
 });

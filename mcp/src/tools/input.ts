@@ -105,8 +105,8 @@ export const inputTool = defineTool({
       .join('\n\n');
     if (args.screenshot) {
       const shot = downscalePng(await bridgeScreenshot(session), 768);
-      return imageResult(shot.png.toString('base64'), `${text}\n\nScreenshot after the input (${shot.srcWidth}x${shot.srcHeight} window).`, { state: final.state });
+      return imageResult(shot.png.toString('base64'), `${text}\n\nScreenshot after the input (${shot.srcWidth}x${shot.srcHeight} window).`);
     }
-    return textResult(text, { state: final.state, lua_errors: errors });
+    return textResult(text);
   },
 });

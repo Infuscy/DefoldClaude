@@ -3,27 +3,24 @@ import type { CallToolResult } from '@modelcontextprotocol/server';
 /** Hard cap so a single result stays well below Claude Code's MCP output limit. */
 export const DEFAULT_MAX_CHARS = 24_000;
 
-export function textResult(text: string, structured?: Record<string, unknown>): CallToolResult {
-  const result: CallToolResult = { content: [{ type: 'text', text: clampText(text) }] };
-  if (structured) result.structuredContent = structured;
-  return result;
+// Results carry text (and images) only. Claude Code shows the model structuredContent *instead of* content
+// when both are present, which would hide the log lines, docs, diffs and screenshots that are the answer.
+
+export function textResult(text: string): CallToolResult {
+  return { content: [{ type: 'text', text: clampText(text) }] };
 }
 
-export function errorResult(message: string, structured?: Record<string, unknown>): CallToolResult {
-  const result: CallToolResult = { content: [{ type: 'text', text: clampText(message) }], isError: true };
-  if (structured) result.structuredContent = structured;
-  return result;
+export function errorResult(message: string): CallToolResult {
+  return { content: [{ type: 'text', text: clampText(message) }], isError: true };
 }
 
-export function imageResult(pngBase64: string, caption: string, structured?: Record<string, unknown>): CallToolResult {
-  const result: CallToolResult = {
+export function imageResult(pngBase64: string, caption: string): CallToolResult {
+  return {
     content: [
       { type: 'text', text: caption },
       { type: 'image', data: pngBase64, mimeType: 'image/png' },
     ],
   };
-  if (structured) result.structuredContent = structured;
-  return result;
 }
 
 export function clampText(text: string, maxChars = DEFAULT_MAX_CHARS): string {

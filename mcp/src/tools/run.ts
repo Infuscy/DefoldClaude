@@ -46,7 +46,7 @@ export const runTool = defineTool({
           const s = await currentSession(project);
           if (!isRunning(s)) return textResult('No running game for this project.');
           await stopSession(s);
-          return textResult(`Stopped the game (${s.backend}).`, { stopped: true });
+          return textResult(`Stopped the game (${s.backend}).`);
         }
         case 'reload':
           return reload(project, args.wait_seconds, ctx.signal);
@@ -88,7 +88,7 @@ async function start(
     await progress('Building and launching through the Defold editor');
     const r = await editorBuildCommand(project, backend.conn, 'run', { query: { focus: 'false' }, signal });
     if (!r.success) {
-      return textResult(`Run FAILED in the Defold editor.\n${summarizeIssues(r.issues)}`, { success: false, issues: r.issues });
+      return textResult(`Run FAILED in the Defold editor.\n${summarizeIssues(r.issues)}`);
     }
     const fromCursor = getSession(project.root)?.logs.cursor ?? 0;
     const session = attachEditorSession(project, backend.conn, r.targetUrl, consoleBefore.length, consoleBefore[consoleBefore.length - 1]);
@@ -101,7 +101,7 @@ async function start(
   await progress('Building with bob');
   const build = await buildHeadless(install, project, { signal, onProgress: (m, p) => void progress(m, p, 100) });
   if (!build.success) {
-    return textResult(`Build FAILED — the game was not started.\n${summarizeIssues(build.issues)}`, { success: false, issues: build.issues });
+    return textResult(`Build FAILED — the game was not started.\n${summarizeIssues(build.issues)}`);
   }
   await progress('Launching dmengine');
   const fromCursor = getSession(project.root)?.logs.cursor ?? 0;
@@ -119,17 +119,17 @@ async function reload(project: DefoldProject, waitSeconds: number, signal: Abort
   const fromCursor = s.logs.cursor;
   if (s.backend === 'editor' && s.editor) {
     const r = await editorBuildCommand(project, s.editor, 'hot-reload', { signal });
-    if (!r.success) return textResult(`Hot reload FAILED.\n${summarizeIssues(r.issues)}`, { success: false, issues: r.issues });
+    if (!r.success) return textResult(`Hot reload FAILED.\n${summarizeIssues(r.issues)}`);
     return report(s, waitSeconds, 'Hot-reloaded through the Defold editor', '', fromCursor);
   }
   const install = requireInstall();
   const before = s.manifest ?? (await hashBuildOutputs(project.root));
   const build = await runBob(install, project, { commands: ['build'], variant: 'debug', signal });
-  if (!build.success) return textResult(`Rebuild FAILED — nothing reloaded.\n${summarizeIssues(build.issues)}`, { success: false, issues: build.issues });
+  if (!build.success) return textResult(`Rebuild FAILED — nothing reloaded.\n${summarizeIssues(build.issues)}`);
   const after = await hashBuildOutputs(project.root, before);
   s.manifest = after;
   const changed = changedResources(before, after);
-  if (!changed.length) return textResult('Rebuilt; no compiled resources changed, nothing to reload.', { success: true, reloaded: [] });
+  if (!changed.length) return textResult('Rebuilt; no compiled resources changed, nothing to reload.');
   await reloadResources(s, changed);
   return report(s, waitSeconds, `Hot-reloaded ${changed.length} resource(s): ${changed.join(', ')}`, '', fromCursor);
 }
@@ -156,11 +156,5 @@ async function report(session: EngineSession, waitSeconds: number, header: strin
     shown.length ? `Log (${shown.length} lines):\n${shown.join('\n')}` : '',
     `Log cursor: ${session.logs.cursor} (pass to logs to get only newer lines)`,
   ];
-  return textResult(parts.filter(Boolean).join('\n\n'), {
-    running: !session.exited,
-    backend: session.backend,
-    service_url: session.serviceUrl,
-    lua_errors: errors,
-    cursor: session.logs.cursor,
-  });
+  return textResult(parts.filter(Boolean).join('\n\n'));
 }

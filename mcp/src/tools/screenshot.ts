@@ -28,7 +28,7 @@ export const screenshotTool = defineTool({
       const { resource } = normalizeProjectPath(project, args.path);
       const size = args.max_size;
       const png = await editorPreview(conn, resource, size, size);
-      return imageResult(png.toString('base64'), `Editor preview of ${resource} (${size}x${size} max).`, { source: 'preview', resource });
+      return imageResult(png.toString('base64'), `Editor preview of ${resource} (${size}x${size} max).`);
     }
 
     const session = await currentSession(project);
@@ -40,7 +40,6 @@ export const screenshotTool = defineTool({
       return imageResult(
         shot.png.toString('base64'),
         `Game frame ${shot.srcWidth}x${shot.srcHeight} (image ${shot.width}x${shot.height}, captured in-engine).${note}`,
-        { source: 'game', width: shot.width, height: shot.height, window_width: shot.srcWidth, window_height: shot.srcHeight, blank: shot.blank },
       );
     }
     let pid = session.pid;
@@ -51,7 +50,6 @@ export const screenshotTool = defineTool({
     return imageResult(
       shot.png.toString('base64'),
       `Game window ${shot.sourceWidth}x${shot.sourceHeight} (image ${shot.width}x${shot.height}).${note}`,
-      { source: 'game', width: shot.width, height: shot.height, window_width: shot.sourceWidth, window_height: shot.sourceHeight, blank: shot.blank },
     );
   },
 });

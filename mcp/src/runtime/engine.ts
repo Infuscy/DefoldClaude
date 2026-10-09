@@ -56,7 +56,6 @@ addRuntimeSummaryProvider(() => {
     text:
       'Running games:\n' +
       running.map((s) => `  ${s.projectRoot} via ${s.backend}${s.serviceUrl ? ` (engine service ${s.serviceUrl})` : ''}${s.pid ? ` pid ${s.pid}` : ''}`).join('\n'),
-    data: { running: running.map((s) => ({ project: s.projectRoot, backend: s.backend, service_url: s.serviceUrl, pid: s.pid })) },
   };
 });
 

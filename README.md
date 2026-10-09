@@ -29,7 +29,7 @@ schema, broken references), and problems are fed straight back to Claude.
   | `read_resource` | Any resource as JSON with embedded objects decoded; `describe` gives a type's schema |
   | `edit_resource` | `set` / `insert` / `remove` on selectors such as `/embedded_instances[id=go]/data/embedded_components[id=sprite]/data/default_animation`; validates before writing; keeps untouched bytes |
   | `validate` | Whole-project or per-file checks without building |
-  | `build` | Compile (or resolve / clean / bundle) with structured issues |
+  | `build` | Compile (or resolve / clean / bundle); errors listed by file and line |
   | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors |
   | `logs` | Incremental engine output with Lua error extraction |
   | `screenshot` | The game window (Windows) or an editor-rendered preview of any scene |

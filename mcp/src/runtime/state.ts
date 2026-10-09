@@ -2,7 +2,6 @@
 
 export interface RuntimeSummary {
   text: string;
-  data: Record<string, unknown>;
 }
 
 type SummaryProvider = () => RuntimeSummary | undefined;
@@ -17,6 +16,5 @@ export function runtimeSummary(): RuntimeSummary | undefined {
   if (!parts.length) return undefined;
   return {
     text: parts.map((p) => p.text).join('\n'),
-    data: Object.assign({}, ...parts.map((p) => p.data)),
   };
 }

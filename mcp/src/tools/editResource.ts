@@ -70,6 +70,6 @@ export const editResourceTool = defineTool({
     const editorNote = editorPortFiles(project).port ? '\nThe Defold editor has this project open; it reloads the file on its next sync (build/run through the tools sync it).' : '';
     const warnText = warnings.length ? `\nWarnings:\n${warnings.map((i) => `- ${formatIssue(i)}`).join('\n')}` : '';
     const verb = args.dry_run ? 'Dry run (not written)' : created ? 'Created' : 'Updated';
-    return textResult(`${verb} ${resource}.${warnText}\n${diff}${editorNote}`, { written: !args.dry_run, created, warnings });
+    return textResult(`${verb} ${resource}.${warnText}\n${diff}${editorNote}`);
   },
 });

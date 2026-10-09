@@ -49,7 +49,6 @@ export const inspectTool = defineTool({
       }
       return textResult(
         `${rows.length} visible element(s)${q ? ` matching "${q}"` : ''} (screen coordinates: pixels from the top-left of the window; pass the id or text as input target):\n${rows.join('\n')}`,
-        { count: rows.length },
       );
     }
     const root = (await sceneGraph(session)) as SceneNode;
@@ -79,7 +78,7 @@ export const inspectTool = defineTool({
     };
     visit(root, 0, false);
     const header = `Scene graph (${count} nodes${filter ? `, ${matched} shown for "${args.filter}"` : ''}${lines.length >= args.max_nodes ? `, truncated at ${args.max_nodes}` : ''}):`;
-    return textResult([header, ...lines].join('\n'), { node_count: count });
+    return textResult([header, ...lines].join('\n'), );
   },
 });
 

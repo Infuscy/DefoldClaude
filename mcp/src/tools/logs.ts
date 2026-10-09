@@ -27,11 +27,6 @@ export const logsTool = defineTool({
       errors.length ? `Lua errors in this range (${errors.length}):\n${errors.slice(-10).map((e) => `- ${formatLuaError(e)}`).join('\n')}` : '',
       `Next cursor: ${session.logs.cursor}`,
     ];
-    return textResult(parts.filter(Boolean).join('\n\n'), {
-      running: !session.exited,
-      cursor: session.logs.cursor,
-      line_count: lines.length,
-      lua_errors: errors,
-    });
+    return textResult(parts.filter(Boolean).join('\n\n'));
   },
 });

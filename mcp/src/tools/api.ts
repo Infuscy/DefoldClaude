@@ -23,7 +23,7 @@ export const apiTool = defineTool({
       const hits = findExact(elements, args.name, args.environment === 'runtime' ? 'all' : args.environment);
       if (hits.length) {
         const text = hits.slice(0, 4).map(renderFull).join('\n\n---\n\n');
-        return textResult(`${text}\n\n(Defold ${install.version ?? ''} API)`, { found: hits.length, names: hits.map((h) => h.name) });
+        return textResult(`${text}\n\n(Defold ${install.version ?? ''} API)`);
       }
       // Search the words of the unknown name; keep a namespace prefix (go.move_to → namespace go, "move to").
       const dot = args.name.indexOf('.');
@@ -35,7 +35,6 @@ export const apiTool = defineTool({
       return textResult(
         `No API element named "${args.name}" in Defold ${install.version ?? ''}. It probably does not exist.` +
           (similar.length ? `\nClosest matches:\n${similar.map((e) => `- ${renderBrief(e)}`).join('\n')}` : ''),
-        { found: 0 },
       );
     }
 
@@ -52,8 +51,6 @@ export const apiTool = defineTool({
     if (!hits.length) return textResult(`No API matches for "${args.query}". Try the docs tool for concepts.`);
     const top = hits[0]!;
     const detail = hits.length && (top.name.toLowerCase() === (args.query ?? '').toLowerCase() || hits.length === 1) ? `\n\n${renderFull(top)}` : '';
-    return textResult(`${hits.length} match(es) for "${args.query}":\n${hits.map((e) => `- ${renderBrief(e)}`).join('\n')}${detail}\n\nUse name=<element> for full details.`, {
-      names: hits.map((h) => h.name),
-    });
+    return textResult(`${hits.length} match(es) for "${args.query}":\n${hits.map((e) => `- ${renderBrief(e)}`).join('\n')}${detail}\n\nUse name=<element> for full details.`);
   },
 });

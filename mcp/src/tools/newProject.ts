@@ -28,7 +28,6 @@ export const newProjectTool = defineTool({
     return textResult(
       `Created ${template.category.replace(/s$/, '')} "${template.id}" in ${dest} (${files.length} files, title ${title}).\n` +
         `Next: build with project="${dest}", then open it in the Defold editor (File > Open Project) or run it with the run tool.`,
-      { directory: dest, template: template.id, files: files.length },
     );
   },
 });

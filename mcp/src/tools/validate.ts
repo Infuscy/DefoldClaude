@@ -62,6 +62,6 @@ export const validateTool = defineTool({
     const header = `Checked ${checked} file(s) in ${path.basename(project.root)}: ${errors} error(s), ${warnings} warning(s), ${issues.length - errors - warnings} note(s).`;
     const body = shown.map((i) => `- ${formatIssue(i)}`).join('\n');
     const more = issues.length > shown.length ? `\n… ${issues.length - shown.length} more (raise max_issues or validate specific paths)` : '';
-    return textResult(`${header}${body ? '\n' + body : ''}${more}`, { checked, errors, warnings, issues: shown });
+    return textResult(`${header}${body ? '\n' + body : ''}${more}`);
   },
 });

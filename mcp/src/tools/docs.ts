@@ -35,9 +35,7 @@ export const docsTool = defineTool({
           (h.sections.length ? `\n  sections: ${h.sections.join(' | ')}` : '') +
           `\n  ${h.snippet}`,
       );
-      return textResult(`${lines.join('\n')}\n\nRead with action=read name=<id> (optionally section=<heading>).${staleNote}`, {
-        ids: hits.map((h) => h.entry.id),
-      });
+      return textResult(`${lines.join('\n')}\n\nRead with action=read name=<id> (optionally section=<heading>).${staleNote}`);
     }
 
     if (!args.name) return errorResult('action=read needs "name" (see action=list or search).');
@@ -56,6 +54,6 @@ export const docsTool = defineTool({
     const url = doc.source === 'manuals' ? `https://defold.com/manuals/${doc.id}/` : `https://defold.com/examples/${doc.id.replace(':', '/')}/`;
     const header = `# ${doc.title} (${doc.source === 'manuals' ? 'manual' : 'example'} ${doc.id}) — ${url}`;
     const more = page.nextOffset !== undefined ? `\n\n[continues — call again with offset=${page.nextOffset}]` : '';
-    return textResult(`${header}\n\n${page.text}${more}${staleNote}`, { id: doc.id, next_offset: page.nextOffset ?? null });
+    return textResult(`${header}\n\n${page.text}${more}${staleNote}`);
   },
 });
