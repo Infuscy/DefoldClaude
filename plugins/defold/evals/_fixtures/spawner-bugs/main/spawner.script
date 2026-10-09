@@ -1,0 +1,11 @@
+go.property("interval", 1)
+
+function init(self)
+	math.randomseed(os.time())
+	self.timer = timer.delay(self.interval, true, spawn_enemy)
+end
+
+local function spawn_enemy(self, handle, time_elapsed)
+	local x = math.random(40, 600)
+	factory.create("#enemy_factory", vmath.vector3(x, 1000, 0))
+end

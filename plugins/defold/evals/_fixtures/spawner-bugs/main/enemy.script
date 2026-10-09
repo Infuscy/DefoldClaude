@@ -1,0 +1,15 @@
+go.property("speed", 250)
+
+function init(self)
+	print("enemy spawned")
+end
+
+function update(self, dt)
+	local p = go.get_position()
+	p.y = p.y - self.speed * dt
+	if p.y < -50 then
+		go.delete()
+	else
+		go.set_position(p)
+	end
+end

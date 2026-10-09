@@ -1,0 +1,24 @@
+go.property("speed", 200)
+
+local TRIGGER_EVENT = hash("trigger_event")
+local COIN = hash("coin")
+
+local function on_physics(self, events)
+	for _, event in ipairs(events) do
+		if event.type == TRIGGER_EVENT and event.enter then
+			local coin = event.a.group == COIN and event.a or event.b
+			if coin.group == COIN then
+				go.delete(coin.id)
+				print("collected")
+			end
+		end
+	end
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	physics.set_event_listener(on_physics)
+end
+
+function on_input(self, action_id, action)
+end

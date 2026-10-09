@@ -1,0 +1,1 @@
+{ "run_seconds": 3, "expect_log": ["collected"] }

@@ -1,0 +1,1 @@
+{ "run_seconds": 4, "expect_log": ["enemy spawned"], "expect_color": [240, 200, 40] }

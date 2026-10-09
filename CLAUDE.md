@@ -22,6 +22,9 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
 - `npm run fetch:corpus` then `npm run test:corpus` — byte-identical round-trip and zero-false-positive gates
   on Defold's save_data_project, defold/examples, builtins and the local example project.
 - `npx tsx scripts/check-skills.ts` — every API/tool named in skills must exist (needs local Defold).
+- `npx tsx scripts/eval-verify.ts <eval-result.json> [--cleanup]` — build and run every arm's project from a
+  `claude plugin eval … --keep-temp --json` run against `evals/<case>/verify.json`; `--project <dir> --case <name>`
+  checks one project (use it on a reference solution after changing a case).
 - `claude plugin validate --strict plugins/defold` and `claude plugin validate --strict .` (repo root).
 - Local try-out: `claude --plugin-dir plugins/defold`, then `/mcp` should list `plugin:defold:defold`.
 
@@ -32,6 +35,9 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
   `src/ddf/builtins.generated.json` (from the local editor jar).
 - `scripts/gen-fieldorder.ts` → `src/ddf/fieldorder.generated.json` (editor field order learned from corpus).
 - `scripts/gen-api-core.ts` → `plugins/defold/skills/defold/references/api-core.md`.
+- `scripts/gen-eval-fixture.ts` → `plugins/defold/evals/_fixtures/*` (start projects for project eval cases) and
+  `test/fixtures/eval-reference/<case>` (correct solutions, kept outside the plugin so evaluated agents can't
+  read them; `test/unit/eval-graders.test.ts` checks the file graders accept them and reject the start state).
   Regenerate all of them when targeting a new Defold version.
 
 ## Rules

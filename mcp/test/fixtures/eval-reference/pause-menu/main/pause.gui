@@ -1,0 +1,101 @@
+script: "/main/pause.gui_script"
+fonts {
+  name: "default"
+  font: "/builtins/fonts/default.font"
+}
+nodes {
+  position {
+    x: 320.0
+    y: 480.0
+  }
+  size {
+    x: 400.0
+    y: 320.0
+  }
+  color {
+    x: 0.05
+    y: 0.05
+    z: 0.1
+  }
+  type: TYPE_BOX
+  id: "panel"
+  alpha: 0.8
+}
+nodes {
+  position {
+    y: 110.0
+  }
+  size {
+    x: 200.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Paused"
+  font: "default"
+  id: "title"
+  parent: "panel"
+}
+nodes {
+  position {
+    x: 0.0
+    y: 10.0
+  }
+  size {
+    x: 220.0
+    y: 60.0
+  }
+  color {
+    x: 0.2
+    y: 0.5
+    z: 0.3
+  }
+  type: TYPE_BOX
+  id: "resume"
+  parent: "panel"
+}
+nodes {
+  position {
+    y: 0.0
+  }
+  size {
+    x: 200.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Resume"
+  font: "default"
+  id: "resume_label"
+  parent: "resume"
+}
+nodes {
+  position {
+    x: 0.0
+    y: -80.0
+  }
+  size {
+    x: 220.0
+    y: 60.0
+  }
+  color {
+    x: 0.5
+    y: 0.2
+    z: 0.2
+  }
+  type: TYPE_BOX
+  id: "quit"
+  parent: "panel"
+}
+nodes {
+  position {
+    y: 0.0
+  }
+  size {
+    x: 200.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Quit"
+  font: "default"
+  id: "quit_label"
+  parent: "quit"
+}

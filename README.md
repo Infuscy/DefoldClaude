@@ -137,6 +137,17 @@ Evals (`plugins/defold/evals`) run real Claude sessions with and without the plu
 EVAL_DEFOLD_HOME=C:/GIT/Defold/Defold claude plugin eval plugins/defold --runs 1 --scaffold --allow-real-servers --allow-tools Edit Write "mcp__plugin_defold_defold__*"
 ```
 
+`--tag hard` selects the four harder project cases (version-specific physics API, runtime-only bugs, a nested GUI,
+precise edits across escaped scene data). Eval graders cannot run a build, and only the plugin arm has build
+tools, so add `--keep-temp --json result.json` and then build and run what both arms produced the same way:
+
+```bash
+cd mcp && npx tsx scripts/eval-verify.ts result.json --cleanup
+```
+
+It copies each project out of the eval temp folders, builds it, runs it, and checks the case's `verify.json`
+(expected log lines, a colour that must be on screen, no Lua errors).
+
 ## License and notices
 
 Private project. Defold-derived data (schemas generated from Defold's `.proto` files, the builtins list, the
