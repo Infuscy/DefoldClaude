@@ -1,7 +1,7 @@
 // Download/collect Defold text resources used by the corpus tests into test/corpus/ (gitignored).
 // Sources: Defold's editor round-trip project (save_data_project @ tag), defold/examples (CC0),
 // the local editor jar's builtins, and a local project (read-only copy of its text files).
-// Usage: npx tsx scripts/fetch-corpus.ts [tag=1.13.2] [localProject="C:/GIT/DefoldProjects/Mobile Game"]
+// Usage: npx tsx scripts/fetch-corpus.ts [tag=1.14.0] [localProject="C:/GIT/DefoldProjects/Mobile Game"]
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,7 +11,7 @@ import { ZipFile } from '../src/env/zip.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const corpus = path.resolve(here, '../test/corpus');
-const tag = process.argv[2] ?? '1.13.2';
+const tag = process.argv[2] ?? '1.14.0';
 const localProject = process.argv[3] ?? 'C:/GIT/DefoldProjects/Mobile Game';
 const BINARY = /\.(png|jpe?g|gif|webp|ogg|wav|mp3|ttf|otf|glb|gltf|bin|dae|fbx|car|zip|jar|so|dll|exe|a|lib|icns|ico|psd|ktx|basis|xcf|pdf)$/i;
 

@@ -13,7 +13,7 @@ values, defaults included, are written to `build/<dir>/game.projectc` after a bu
 | `[input]` | `game_binding = /input/game.input_bindingc`, `use_accelerometer`, `repeat_delay`, `repeat_interval` |
 | `[physics]` | `type` (2D/3D), `gravity_x/y/z`, `scale`, `debug`, `use_fixed_timestep`, `max_collision_object_count` |
 | `[engine]` | `fixed_update_frequency` (fixed_update rate), `max_time_step` |
-| `[script]` | `shared_state` (1 = all scripts share one Lua state; templates set 1) |
+| `[script]` | `shared_state` (Defold 1.13 and older; 1 = all scripts share one Lua state). Removed in 1.14, where scripts always share one state |
 | `[render]` | `clear_color_red/green/blue/alpha` |
 | `[sprite]`, `[label]`, `[factory]`, `[collectionfactory]`, `[collection]`, `[gui]`, `[particle_fx]`, `[sound]` | `max_count` and similar limits; raise them if the log says a limit was reached |
 | `[html5]` | `scale_mode` (`downscale_fit`, `fit`, `stretch`, `no_scale`), `heap_size`, `show_fullscreen_button` |
@@ -65,8 +65,8 @@ Release builds strip debug output (`print` goes nowhere, and there is no engine 
 ## Platform specifics
 
 - Mobile: set `[display] width/height` to the design resolution (portrait: e.g. 720x1280), `high_dpi = 1`,
-  and handle aspect ratios with a camera in `ORTHO_MODE_AUTO_FIT`/`AUTO_COVER` or GUI adjust modes. Turn off
-  `use_accelerometer` if unused. Test touch with mouse button 1.
+  and handle aspect ratios with a camera in `ORTHO_MODE_AUTO_FIT`/`AUTO_COVER` or GUI adjust modes. Set
+  `use_accelerometer = 1` only if the game reads acceleration (default 0 since Defold 1.14, 1 before). Test touch with mouse button 1.
 - Detect the platform with `sys.get_sys_info().system_name` (`"Windows"`, `"Darwin"`, `"Linux"`, `"Android"`,
   `"iPhone OS"`, `"HTML5"`) and `html5.run(js)` for browser JavaScript.
 - Desktop: `[display] fullscreen`; `window.set_size`, `window.get_size`, and `window.set_listener` to react to

@@ -83,7 +83,7 @@ export function checkLua(code: string, resource: string, options: LuaCheckOption
     if (options.thorough && node.type === 'GotoStatement') {
       add('info', node, 'goto is not available on HTML5 builds (plain Lua 5.1)', 'html5-compat');
     }
-    // 6. (thorough) assignments to undeclared globals leak into every script when [script] shared_state is on.
+    // 6. (thorough) assignments to undeclared globals leak into every script (one shared Lua state; on 1.13 only with [script] shared_state).
     if (options.thorough && node.type === 'AssignmentStatement') {
       for (const v of node.variables as Node[]) {
         if (v.type === 'Identifier' && !(v as { isLocal?: boolean }).isLocal && /^[a-z]/.test(v.name as string) && !isLocalDeclared(v.name as string, ancestors)) {

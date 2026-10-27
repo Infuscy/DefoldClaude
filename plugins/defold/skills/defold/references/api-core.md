@@ -1,6 +1,6 @@
-# Defold 1.13.2 Lua API — core cheatsheet
+# Defold 1.14.0 Lua API — core cheatsheet
 
-Generated from the Defold 1.13.2 API documentation (sha1 8620195789abcf164992cc82103a16189d22f675). One line per entry: signature — summary.
+Generated from the Defold 1.14.0 API documentation (sha1 d295ed4edff2e49072719835713e625f409849f1). One line per entry: signature — summary.
 For parameters, return values and examples call the `api` tool with `name=<entry>`; for anything not listed here use `api` with `query=`.
 Optional parameters are in [brackets]. Messages are sent with `msg.post(url, "<name>", {fields})` and received in `on_message` (compare `message_id == hash("<name>")`).
 

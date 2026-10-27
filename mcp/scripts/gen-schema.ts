@@ -1,5 +1,5 @@
 // Generate src/ddf/schema.generated.json from Defold's .proto files at a pinned tag.
-// Usage: npx tsx scripts/gen-schema.ts [tag=1.13.2]
+// Usage: npx tsx scripts/gen-schema.ts [tag=1.14.0]
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -8,7 +8,7 @@ import protobuf from 'protobufjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
-const tag = process.argv[2] ?? '1.13.2';
+const tag = process.argv[2] ?? '1.14.0';
 const cacheDir = path.join(here, '.proto-cache', tag);
 const outFile = path.resolve(here, '../src/ddf/schema.generated.json');
 
