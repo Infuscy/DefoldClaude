@@ -7,12 +7,10 @@ import { normalizeProjectPath, toResourcePath } from '../env/project.js';
 import type { Issue } from '../runtime/issues.js';
 import { formatIssue } from '../runtime/issues.js';
 import { walkFiles } from '../util/fsx.js';
-import { requireProject } from './common.js';
+import { PROJECT_SKIP_DIRS as SKIP, requireProject } from './common.js';
 import { defineTool } from './registry.js';
 import { textResult } from './result.js';
 import { validateInput } from './schemas.js';
-
-const SKIP = new Set(['build', '.internal', '.git', 'node_modules', 'bundle', '.vscode', '.idea']);
 
 export const validateTool = defineTool({
   name: 'validate',

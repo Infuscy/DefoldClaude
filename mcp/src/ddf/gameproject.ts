@@ -126,8 +126,8 @@ function checkResourceSetting(section: string, key: string, value: string, s: Se
     issues.push({ severity: 'error', resource: '/game.project', line, message: `[${section}] ${key} must be an absolute resource path starting with "/".`, rule: 'setting-path' });
     return;
   }
-  const compiledDefault = !!s.default && /c$/.test(s.default) && /\.[a-z_]+c$/.test(s.default);
-  const source = compiledDefault && value.endsWith('c') ? value.slice(0, -1) : value;
+  const compiledDefault = isCompiledSetting(s);
+  const source = settingSourcePath(value, s);
   const exists = ctx.resourceExists(source);
   if (exists === false) {
     issues.push({
@@ -146,4 +146,14 @@ function checkResourceSetting(section: string, key: string, value: string, s: Se
       rule: 'compiled-path',
     });
   }
+}
+
+/** Settings such as bootstrap.main_collection hold the built path (/main/main.collectionc). */
+export function isCompiledSetting(s: SettingSchema): boolean {
+  return !!s.default && /\.[a-z_]+c$/.test(s.default);
+}
+
+/** The source resource a resource setting points to: the built path without its trailing "c". */
+export function settingSourcePath(value: string, s: SettingSchema): string {
+  return isCompiledSetting(s) && value.endsWith('c') ? value.slice(0, -1) : value;
 }

@@ -12,7 +12,7 @@ const LIFECYCLE = ['init', 'final', 'update', 'fixed_update', 'late_update', 'on
 const GUI_LIFECYCLE = ['init', 'final', 'update', 'on_message', 'on_input', 'on_reload'];
 const RENDER_LIFECYCLE = ['init', 'update', 'on_message', 'on_reload'];
 
-type Node = { type: string; [key: string]: unknown; loc?: { start: { line: number; column: number } } };
+export type Node = { type: string; [key: string]: unknown; loc?: { start: { line: number; column: number } } };
 
 export function checkLua(code: string, resource: string, options: LuaCheckOptions = {}): Issue[] {
   const issues: Issue[] = [];
@@ -96,7 +96,7 @@ export function checkLua(code: string, resource: string, options: LuaCheckOption
   return issues;
 }
 
-function walk(node: Node, ancestors: Node[], visit: (n: Node, ancestors: Node[]) => void): void {
+export function walk(node: Node, ancestors: Node[], visit: (n: Node, ancestors: Node[]) => void): void {
   visit(node, ancestors);
   const next = [...ancestors, node];
   for (const key of Object.keys(node)) {
@@ -110,7 +110,7 @@ function walk(node: Node, ancestors: Node[], visit: (n: Node, ancestors: Node[])
   }
 }
 
-function memberName(n: Node | undefined): string | undefined {
+export function memberName(n: Node | undefined): string | undefined {
   if (!n) return undefined;
   if (n.type === 'Identifier') return n.name as string;
   if (n.type === 'MemberExpression') {
@@ -121,13 +121,13 @@ function memberName(n: Node | undefined): string | undefined {
   return undefined;
 }
 
-function stringValue(n: Node): string {
+export function stringValue(n: Node): string {
   const raw = (n.raw as string | undefined) ?? '';
   if (n.value !== null && n.value !== undefined) return String(n.value);
   return raw.replace(/^(["'])(.*)\1$/s, '$2').replace(/^\[=*\[(.*)\]=*\]$/s, '$1');
 }
 
-function firstArgString(call: Node): string | undefined {
+export function firstArgString(call: Node): string | undefined {
   if (call.type === 'StringCallExpression') return stringValue(call.argument as Node);
   const args = call.arguments as Node[] | undefined;
   const first = args?.[0];

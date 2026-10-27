@@ -135,6 +135,14 @@ export const validateInput = z.object({
   max_issues: z.number().int().min(1).max(500).default(100),
 });
 
+export const findReferencesInput = z.object({
+  project,
+  path: z
+    .string()
+    .describe('What to find uses of: a resource (/main/hero.atlas), a folder (/images/) or a Lua module (/modules/util.lua or its require name modules.util).'),
+  max_results: z.number().int().min(1).max(2000).default(200),
+});
+
 export const newProjectInput = z.object({
   template: z
     .string()

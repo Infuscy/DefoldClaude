@@ -19,7 +19,7 @@ schema, broken references), and problems are fed straight back to Claude.
 - **Slash commands**: `/defold:build`, `/defold:run`, `/defold:check`, `/defold:new-project`,
   `/defold:setup-bridge`, `/defold:playtest`.
 - **Agent**: `defold-playtester` plays the game (taps, keys, screenshots, logs) and reports findings.
-- **MCP server** `defold` with 13 tools:
+- **MCP server** `defold` with 14 tools:
 
   | Tool | What it does |
   |---|---|
@@ -29,6 +29,7 @@ schema, broken references), and problems are fed straight back to Claude.
   | `read_resource` | Any resource as JSON with embedded objects decoded; `describe` gives a type's schema |
   | `edit_resource` | `set` / `insert` / `remove` on selectors such as `/embedded_instances[id=go]/data/embedded_components[id=sprite]/data/default_animation`; validates before writing; keeps untouched bytes |
   | `validate` | Whole-project or per-file checks without building |
+  | `find_references` | Every file and line that uses a resource, folder or Lua module (`require "a.b"` too), for safe renames and deletes |
   | `build` | Compile (or resolve / clean / bundle); errors listed by file and line |
   | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors |
   | `logs` | Incremental engine output with Lua error extraction |

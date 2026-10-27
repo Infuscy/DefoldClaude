@@ -23,6 +23,7 @@ docs of the Defold version actually installed, and use `docs` for concepts.
 | Read a scene/resource as JSON (embedded data decoded) | `read_resource` (`describe=true` gives the schema of a type) |
 | Change `.collection/.go/.gui/.atlas/...` safely | `edit_resource` (set/insert/remove, `create=true` for new files) |
 | Check files without building | `validate` |
+| What uses a file, folder or Lua module (before renaming, moving or deleting it) | `find_references` |
 | Compile and get errors with file:line | `build` |
 | Run, stop, hot-reload, physics debug | `run` |
 | Engine output, prints, Lua errors | `logs` |
@@ -42,7 +43,8 @@ The plugin also validates Defold files automatically after every Write/Edit and 
    scripts. Follow the project's existing structure and naming.
 3. Look up APIs (`api`) and patterns (`docs`, and [references/](references/)) before coding.
 4. Make the change. Lua is edited as normal text. For scene files, use `edit_resource`, or follow
-   [references/file-formats.md](references/file-formats.md) exactly when writing by hand.
+   [references/file-formats.md](references/file-formats.md) exactly when writing by hand. Before renaming,
+   moving or deleting a file, run `find_references` on it and update every place it lists.
 5. `build`. It is fast through the editor and takes a few seconds headless. Fix every error, then
    `run action=start` and read the reported Lua errors and logs.
 6. Verify before you report success. A clean build and a run without Lua errors only prove that the game starts.

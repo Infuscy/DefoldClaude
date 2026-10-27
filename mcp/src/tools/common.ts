@@ -33,6 +33,9 @@ export async function editorBuildCommand(
   return editorCommand(conn, name, options);
 }
 
+/** Folders that hold build output, editor state or tooling rather than project sources. */
+export const PROJECT_SKIP_DIRS = new Set(['build', '.internal', '.git', 'node_modules', 'bundle', '.vscode', '.idea']);
+
 export function requireInstall(): DefoldInstall {
   const { install, searched } = locateDefold();
   if (!install) {

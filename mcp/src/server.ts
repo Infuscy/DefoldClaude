@@ -12,13 +12,14 @@ import { docsTool } from './tools/docs.js';
 import { readResourceTool } from './tools/readResource.js';
 import { editResourceTool } from './tools/editResource.js';
 import { validateTool } from './tools/validate.js';
+import { findReferencesTool } from './tools/findReferences.js';
 import { newProjectTool } from './tools/newProject.js';
 import { inputTool } from './tools/input.js';
 import { logInfo } from './util/log.js';
 import { shutdownRuntime } from './runtime/lifecycle.js';
 import { cleanupOrphanEngines } from './runtime/processes.js';
 
-export const SERVER_VERSION = '0.2.3';
+export const SERVER_VERSION = '0.2.4';
 
 export const ALL_TOOLS: ToolDef[] = [
   statusTool,
@@ -32,6 +33,7 @@ export const ALL_TOOLS: ToolDef[] = [
   readResourceTool,
   editResourceTool,
   validateTool,
+  findReferencesTool,
   newProjectTool,
   inputTool,
 ] as unknown as ToolDef[];
@@ -42,7 +44,7 @@ export function createServer(): McpServer {
     {
       instructions:
         'Tools for Defold game engine projects: build/run/inspect the game, read logs and screenshots, look up the ' +
-        'installed version\'s Lua API and manuals, and read/edit/validate Defold resource files safely. ' +
+        'installed version\'s Lua API and manuals, and read/edit/validate Defold resource files safely and find what references them. ' +
         'Call status first if unsure about the setup.',
     },
   );

@@ -11,6 +11,18 @@ export interface DdfContext {
   missingRefSeverity?: Severity;
   /** The installed Defold version differs from the schema's; unknown fields become warnings. */
   schemaMismatch?: boolean;
+  /** Called for every string in a resource-path field, including those inside embedded documents. */
+  onReference?: (ref: DdfReference) => void;
+}
+
+export interface DdfReference {
+  path: string;
+  field: string;
+  line: number;
+  /** id of the message holding the field, e.g. the component or instance id. */
+  owner?: string;
+  /** Embedded document the field sits in, e.g. "embedded component 'sprite' in game object 'go'". */
+  where?: string;
 }
 
 interface Walk {
@@ -151,6 +163,19 @@ function checkValue(f: FieldNode, fs: FieldSchema, parentType: string, parent: M
     return;
   }
   // Resource references.
+  if (fs.resource && w.ctx.onReference) {
+    const owner = parent.fields.find((x) => x.name === 'id');
+    for (const s of scalars) {
+      if (s.type !== 'string' || !s.text) continue;
+      w.ctx.onReference({
+        path: s.text,
+        field: f.name,
+        line: w.mapLine(f.line),
+        owner: owner && owner.value.kind === 'scalar' ? owner.value.text : undefined,
+        where: w.where || undefined,
+      });
+    }
+  }
   if (fs.resource && w.ctx.resourceExists) {
     for (const s of scalars) {
       if (s.type !== 'string' || !s.text) continue;
