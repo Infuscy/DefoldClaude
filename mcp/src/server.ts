@@ -19,7 +19,7 @@ import { logInfo } from './util/log.js';
 import { shutdownRuntime } from './runtime/lifecycle.js';
 import { cleanupOrphanEngines } from './runtime/processes.js';
 
-export const SERVER_VERSION = '0.2.6';
+export const SERVER_VERSION = '0.2.7';
 
 export const ALL_TOOLS: ToolDef[] = [
   statusTool,

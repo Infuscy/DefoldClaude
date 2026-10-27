@@ -10,7 +10,7 @@ import { cacheRoot } from '../env/platform.js';
 
 const pexecFile = promisify(execFile);
 
-const CAPTURE_PS1 = String.raw`param([int]$ProcessId, [string]$OutFile, [int]$MaxSize = 1024)
+const CAPTURE_PS1 = String.raw`param([int]$ProcessId, [string]$OutFile, [int]$MaxSize = 1024, [int]$Frames = 1, [int]$IntervalMs = 0)
 $ErrorActionPreference = 'Stop'
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
 using System;
@@ -65,7 +65,15 @@ public static class DefoldCapture {
 $proc = Get-Process -Id $ProcessId
 $hwnd = $proc.MainWindowHandle
 if ($hwnd -eq [IntPtr]::Zero) { Write-Output "error no-window"; exit 0 }
-Write-Output ([DefoldCapture]::Capture($hwnd, $OutFile, $MaxSize))
+# One process for a whole burst: compiling the helper above takes about a second, one capture a few dozen ms.
+$clock = [System.Diagnostics.Stopwatch]::StartNew()
+for ($i = 0; $i -lt $Frames; $i++) {
+  $wait = $i * $IntervalMs - $clock.ElapsedMilliseconds
+  if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
+  $at = $clock.ElapsedMilliseconds
+  $file = $OutFile -replace '\.png$', "-$i.png"
+  Write-Output ("{0} {1}" -f [DefoldCapture]::Capture($hwnd, $file, $MaxSize), $at)
+}
 `;
 
 export interface Capture {
@@ -76,42 +84,53 @@ export interface Capture {
   sourceHeight: number;
   /** True when the sampled pixels were all identical (black or blank frame). */
   blank: boolean;
+  /** Milliseconds after the first frame of a burst. */
+  atMs: number;
 }
 
 export async function captureWindow(pid: number, maxSize: number): Promise<Capture> {
+  return (await captureWindowFrames(pid, maxSize, 1, 0))[0]!;
+}
+
+/** Capture `frames` images of the window, `intervalMs` apart, in one PowerShell run. */
+export async function captureWindowFrames(pid: number, maxSize: number, frames: number, intervalMs: number): Promise<Capture[]> {
   if (process.platform !== 'win32') {
     throw new Error(
       'Game window capture is only implemented on Windows. Use screenshot source=preview (editor) or add the Defold Automation Bridge extension for in-engine screenshots.',
     );
   }
   const scriptDir = path.join(cacheRoot(), 'scripts');
-  const script = path.join(scriptDir, 'capture-v1.ps1');
+  const script = path.join(scriptDir, 'capture-v2.ps1');
   if (!fs.existsSync(script)) {
     await fsp.mkdir(scriptDir, { recursive: true });
     await fsp.writeFile(script, CAPTURE_PS1, 'utf8');
   }
   const out = path.join(os.tmpdir(), `defold-shot-${process.pid}-${Date.now()}.png`);
+  const files = Array.from({ length: frames }, (_, i) => out.replace(/\.png$/, `-${i}.png`));
   try {
     const { stdout } = await pexecFile(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, '-ProcessId', String(pid), '-OutFile', out, '-MaxSize', String(maxSize)],
-      { windowsHide: true, timeout: 30_000 },
+      [
+        '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script,
+        '-ProcessId', String(pid), '-OutFile', out, '-MaxSize', String(maxSize), '-Frames', String(frames), '-IntervalMs', String(intervalMs),
+      ],
+      { windowsHide: true, timeout: 30_000 + frames * intervalMs },
     );
-    const line = stdout.trim().split(/\r?\n/).pop() ?? '';
-    if (!line.startsWith('ok ')) {
-      const reason = line.replace(/^error\s*/, '') || 'unknown';
-      throw new Error(
-        reason === 'minimized'
-          ? 'The game window is minimized; restore it and try again.'
-          : reason === 'no-window'
-            ? 'The game process has no visible window yet.'
-            : `Window capture failed (${reason}).`,
-      );
+    if (/^error no-window/m.test(stdout)) throw new Error('The game process has no visible window yet.');
+    const lines = stdout.trim().split(/\r?\n/).filter((l) => /^(ok|error) /.test(l));
+    const shots: Capture[] = [];
+    for (let i = 0; i < frames; i++) {
+      const line = lines[i] ?? 'error missing-frame';
+      if (!line.startsWith('ok ')) {
+        const reason = line.split(' ')[1] ?? 'unknown';
+        throw new Error(reason === 'minimized' ? 'The game window is minimized; restore it and try again.' : `Window capture failed (${reason}).`);
+      }
+      const [, w, h, sw, sh, varied, at] = line.split(' ');
+      const png = await fsp.readFile(files[i]!);
+      shots.push({ png, width: Number(w), height: Number(h), sourceWidth: Number(sw), sourceHeight: Number(sh), blank: Number(varied) === 0, atMs: Number(at) });
     }
-    const [, w, h, sw, sh, varied] = line.split(' ');
-    const png = await fsp.readFile(out);
-    return { png, width: Number(w), height: Number(h), sourceWidth: Number(sw), sourceHeight: Number(sh), blank: Number(varied) === 0 };
+    return shots;
   } finally {
-    await fsp.rm(out, { force: true });
+    await Promise.all(files.map((f) => fsp.rm(f, { force: true })));
   }
 }

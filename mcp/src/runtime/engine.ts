@@ -34,6 +34,8 @@ export interface EngineSession {
   consoleSeen: number;
   /** Last console line copied; if it changes position the editor cleared/replaced the console (it does on each run). */
   consoleTail?: string;
+  /** Extra `--config=key=value` overrides a headless engine was started with (reused by restart). */
+  launchConfig?: string[];
   /** Content hashes of build/agent outputs, used to find what changed for hot reload. */
   manifest?: Map<string, FileStamp>;
 }
@@ -83,12 +85,13 @@ onShutdown(async () => {
 });
 
 /** Launch dmengine on the headless build output (build/agent). The caller builds first. */
-export async function startHeadless(install: DefoldInstall, project: DefoldProject): Promise<EngineSession> {
+export async function startHeadless(install: DefoldInstall, project: DefoldProject, launchConfig: string[] = []): Promise<EngineSession> {
   const existing = sessions.get(project.root);
   if (existing && !existing.exited) await stopSession(existing);
 
   const exe = await resolveEngineBinary(install, project.root);
-  const args = [`--config=resource.uri=${AGENT_BUILD_DIR}`, '--config=display.focus_on_show=0', `${AGENT_BUILD_DIR}/game.projectc`];
+  const overrides = launchConfig.map((kv) => `--config=${kv}`);
+  const args = [`--config=resource.uri=${AGENT_BUILD_DIR}`, '--config=display.focus_on_show=0', ...overrides, `${AGENT_BUILD_DIR}/game.projectc`];
   const child = spawn(exe, args, {
     cwd: project.root,
     env: { ...process.env, DM_SERVICE_PORT: 'dynamic', DM_QUIT_ON_ESC: '0' },
@@ -103,6 +106,7 @@ export async function startHeadless(install: DefoldInstall, project: DefoldProje
     logs: existing?.logs ?? new LogBuffer(),
     startedAt: Date.now(),
     consoleSeen: 0,
+    launchConfig,
     manifest: existing?.manifest,
   };
   session.logs.appendLines([`--- engine started ${new Date().toISOString()} (${path.basename(exe)}) ---`]);

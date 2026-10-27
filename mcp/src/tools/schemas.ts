@@ -52,6 +52,14 @@ export const runInput = z.object({
     .describe('Engine command for action=command.'),
   width: z.number().int().positive().optional().describe('Window width for command=resize.'),
   height: z.number().int().positive().optional().describe('Window height for command=resize.'),
+  collection: z
+    .string()
+    .optional()
+    .describe('For start/restart: boot into this collection instead of the main one, e.g. /levels/level3.collection (headless engine only).'),
+  config: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .optional()
+    .describe('For start/restart: game.project overrides for this run as {"section.key": value}, e.g. {"display.width": 480, "physics.debug": true} (headless engine only). restart without collection/config reuses the previous ones.'),
   host: z.string().optional().describe('For action=attach: IP address or host name of the machine or device running the game (default 127.0.0.1).'),
   port: z
     .number()
@@ -78,6 +86,14 @@ export const screenshotInput = z.object({
     .describe('game = the running game window; preview = editor-rendered image of a scene resource (editor must be open).'),
   path: z.string().optional().describe('Resource to preview for source=preview, e.g. /main/main.collection or /gui/hud.gui.'),
   max_size: z.number().int().min(128).max(2048).default(1024).describe('Longest side of the returned image in pixels.'),
+  frames: z
+    .number()
+    .int()
+    .min(1)
+    .max(12)
+    .default(1)
+    .describe('source=game: capture this many frames interval_ms apart and return them as one numbered contact sheet, to check that something moves, animates or falls.'),
+  interval_ms: z.number().int().min(30).max(5000).default(250).describe('Time between frames for frames > 1.'),
 });
 
 export const inspectInput = z.object({

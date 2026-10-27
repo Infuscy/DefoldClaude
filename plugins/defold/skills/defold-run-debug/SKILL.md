@@ -14,13 +14,16 @@ with bob into `build/agent` and launch `dmengine`. `status` shows which applies.
 1. `build` → fix every error it lists (`resource`, `line`, `message`). Errors in embedded components are reported
    without a file; look at the collections and game objects that embed that component type.
 2. `run action=start` builds, launches and returns the first log lines plus every Lua error with `file:line` and a
-   traceback. Fix runtime errors before anything else.
+   traceback. Fix runtime errors before anything else. To test one level or screen directly, add
+   `collection=/levels/level3.collection`, and `config={"display.width": 480}` for game.project overrides of this run
+   (headless engine only; `restart` keeps them, a plain `start` drops them).
 3. Observe. After any visual change, take a screenshot before you say it works. No errors does not mean the
    player can see the result (text the same colour as the background, objects off-screen or behind the
    background, wrong z).
    - `logs` (pass the returned `cursor` to see only new output; `level=error` for problems; `grep` for your own
      `print` markers),
-   - `screenshot` (`source=game`) to see the window,
+   - `screenshot` (`source=game`) to see the window; `frames=6 interval_ms=200` returns a numbered contact sheet and
+     how many pixels changed between frames, to check that something moves, animates or falls,
    - `inspect` for live game objects, world positions and components (did the spawn happen? where is the player?),
    - `run action=command command=toggle_physics_debug` to draw collision shapes before a screenshot.
 4. Change code, then `run action=reload` for script/asset tweaks (keeps the game running; `on_reload` is called,
