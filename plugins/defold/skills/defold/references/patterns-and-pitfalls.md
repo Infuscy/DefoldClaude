@@ -26,7 +26,8 @@
 11. **Messages to deleted objects** log an error. Track ids and clear them in `final` or on deletion messages.
 12. **Garbage every frame.** `vmath.vector3()` allocates. Reuse vectors stored in `self`, and avoid creating
     tables and closures in `update`.
-13. **Globals.** A missing `local` leaks into every script when `shared_state` is on. Module tables
+13. **Globals.** A missing `local` leaks into every script (all scripts share one Lua state; on Defold
+    1.13 and older only when `[script] shared_state` is on). Module tables
     (`require`) are shared by all scripts too, so keep per-instance state in `self`.
 14. **Lua version.** Code must run on plain Lua 5.1 for HTML5: no `goto`, `//`, bitwise operators,
     `table.unpack` or integer formatting assumptions. Use `bit.band`, `math.floor` and `unpack`.

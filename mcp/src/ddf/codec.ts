@@ -151,20 +151,10 @@ export function printField(
     if (value === null || typeof value !== 'object' || Array.isArray(value)) {
       throw new EncodeError(`Field "${name}" is a message (${fs?.type.split('.').pop()}); give an object.`);
     }
-    if (fs?.type === 'dmStructDDF.Value' && isSingleScalar(value)) {
-      // The editor writes scalar struct values on one line: value { number: 2.0 }
-      const [k, v] = Object.entries(value)[0]!;
-      return `${indent}${name} { ${k}: ${formatScalar(v, fieldSchema(fs.type, k), k)} }\n`;
-    }
     const body = printBody(value, fs?.type, indent + '  ', opts);
     return `${indent}${name} {\n${body}${indent}}\n`;
   }
   return `${indent}${name}: ${formatScalar(value, fs, name)}\n`;
-}
-
-function isSingleScalar(value: JsonObject): boolean {
-  const entries = Object.entries(value);
-  return entries.length === 1 && (typeof entries[0]![1] !== 'object' || entries[0]![1] === null);
 }
 
 function orderedEntries(obj: JsonObject, messageType: string | undefined): Array<[string, Json]> {

@@ -102,7 +102,7 @@ const INPUT_BINDING = 'key_trigger {\n  input: KEY_LEFT\n  action: "left"\n}\nke
 // ---------------------------------------------------------------------------------------------------- basic
 {
   const write = writer(path.join(fixtures, 'basic'));
-  write('game.project', '[project]\ntitle = Eval Game\n\n[bootstrap]\nmain_collection = /main/main.collectionc\n\n[input]\ngame_binding = /input/game.input_bindingc\n\n[display]\nwidth = 640\nheight = 960\n\n[script]\nshared_state = 1\n\n[physics]\ngravity_y = -1000.0\nscale = 0.01\n');
+  write('game.project', '[project]\ntitle = Eval Game\n\n[bootstrap]\nmain_collection = /main/main.collectionc\n\n[input]\ngame_binding = /input/game.input_bindingc\n\n[display]\nwidth = 640\nheight = 960\n\n[physics]\ngravity_y = -1000.0\nscale = 0.01\n');
   write('.gitignore', '/build\n/.internal\n/.editor_settings\n');
   write('assets/hero.png', png(64, [60, 160, 230]));
   write('assets/coin.png', png(32, [240, 200, 40]));

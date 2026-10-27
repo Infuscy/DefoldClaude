@@ -398,9 +398,6 @@ high_dpi = 1
 type = 2D
 gravity_y = -1000.0
 scale = 0.01
-
-[script]
-shared_state = 1
 ```
 
 Bootstrap and input references point to compiled resources (`c` suffix). Image paths such as icons don't.
