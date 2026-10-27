@@ -42,6 +42,9 @@ export const screenshotTool = defineTool({
         `Game frame ${shot.srcWidth}x${shot.srcHeight} (image ${shot.width}x${shot.height}, captured in-engine).${note}`,
       );
     }
+    if (session.backend === 'attached' && !isLoopback(session.serviceUrl)) {
+      return errorResult('This engine runs on another machine or device, so its window cannot be captured here. Add the Automation Bridge (/defold:setup-bridge) to capture frames in-engine.');
+    }
     let pid = session.pid;
     if (!pid && session.serviceUrl) pid = await pidForListeningPort(Number(new URL(session.serviceUrl).port));
     if (!pid) return errorResult('Could not find the game process to capture.');
@@ -53,3 +56,8 @@ export const screenshotTool = defineTool({
     );
   },
 });
+
+function isLoopback(url: string | undefined): boolean {
+  const host = url ? new URL(url).hostname : '';
+  return host === 'localhost' || host === '[::1]' || /^127\./.test(host);
+}

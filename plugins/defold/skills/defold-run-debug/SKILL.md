@@ -27,6 +27,11 @@ with bob into `build/agent` and launch `dmengine`. `status` shows which applies.
    `init` is not), or `run action=restart` after structural changes (new objects, collections, game.project).
 5. When done, `run action=stop` unless the user wants to keep playing.
 
+A debug build started some other way (on a phone, from a debug bundle, `dmengine` launched by hand) can be
+attached with `run action=attach host=<device IP> port=8001` (the port is printed as "Engine service started on
+port N" when it is not 8001). `logs`, `inspect`, `input` and `run action=command` then work on it; only lines logged
+after attaching are captured, `reload` is not available, and `run action=stop` quits that game.
+
 ## Playing the game
 
 With Defold's Automation Bridge in the project (debug builds only; `/defold:setup-bridge` adds it after the user

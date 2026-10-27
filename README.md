@@ -31,7 +31,7 @@ schema, broken references), and problems are fed straight back to Claude.
   | `validate` | Whole-project or per-file checks without building |
   | `find_references` | Every file and line that uses a resource, folder or Lua module (`require "a.b"` too), for safe renames and deletes |
   | `build` | Compile (or resolve / clean / bundle); errors listed by file and line |
-  | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors |
+  | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors; `attach` connects to a debug build on a phone or started elsewhere and streams its log |
   | `logs` | Incremental engine output with Lua error extraction |
   | `screenshot` | The game window (Windows) or an editor-rendered preview of any scene |
   | `inspect` | Live scene graph with world positions; `elements=true` lists GUI/game elements with screen bounds |

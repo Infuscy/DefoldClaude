@@ -16,7 +16,7 @@ export const logsTool = defineTool({
     const project = requireProject(args.project);
     const session = await currentSession(project);
     if (!session) {
-      return textResult('No game has been run for this project in this session (and none was found running from the Defold editor). Use run action=start.');
+      return textResult('No game has been run for this project in this session (and none was found running from the Defold editor). Use run action=start, or run action=attach for a game started elsewhere.');
     }
     const { lines, truncated } = session.logs.query({ after: args.cursor, level: args.level, grep: args.grep, max: args.max_lines });
     const errors = session.logs.luaErrors(args.cursor ?? 0);

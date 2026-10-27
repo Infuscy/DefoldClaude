@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import type net from 'node:net';
 import path from 'node:path';
 import type { DefoldInstall } from '../env/locate.js';
 import type { DefoldProject } from '../env/project.js';
@@ -9,6 +10,7 @@ import { logDebug } from '../util/log.js';
 import { AGENT_BUILD_DIR, resolveEngineBinary } from './enginebin.js';
 import { editorConsole, type EditorConnection } from './editor.js';
 import { onShutdown } from './lifecycle.js';
+import { connectLogService, engineInfo, type EngineInfo } from './logservice.js';
 import { LogBuffer } from './logs.js';
 import { killTree, registerEngine, unregisterEngine } from './processes.js';
 import { encodeExit, encodeReloadBatches, encodeResize } from './protobuf.js';
@@ -16,7 +18,8 @@ import { addRuntimeSummaryProvider } from './state.js';
 
 export interface EngineSession {
   projectRoot: string;
-  backend: 'bob' | 'editor';
+  /** bob = launched here headless, editor = launched by the Defold editor, attached = started elsewhere (device, bundle). */
+  backend: 'bob' | 'editor' | 'attached';
   child?: ChildProcess;
   pid?: number;
   exe?: string;
@@ -25,6 +28,8 @@ export interface EngineSession {
   startedAt: number;
   exited?: { code: number | null; signal: string | null };
   editor?: EditorConnection;
+  /** TCP log stream of an attached engine. */
+  logSocket?: net.Socket;
   /** Number of editor console lines already copied into `logs`. */
   consoleSeen: number;
   /** Last console line copied; if it changes position the editor cleared/replaced the console (it does on each run). */
@@ -47,6 +52,20 @@ export function getSession(projectRoot: string): EngineSession | undefined {
 
 export function isRunning(s: EngineSession | undefined): s is EngineSession {
   return !!s && !s.exited;
+}
+
+/** Make `session` the project's current one, closing the log stream of the one it replaces. */
+function setSession(session: EngineSession): void {
+  const old = sessions.get(session.projectRoot);
+  if (old && old !== session) closeLogStream(old);
+  sessions.set(session.projectRoot, session);
+}
+
+/** Close an attached engine's log stream on purpose (its close handler then stays quiet). */
+function closeLogStream(session: EngineSession): void {
+  const socket = session.logSocket;
+  session.logSocket = undefined;
+  socket?.destroy();
 }
 
 addRuntimeSummaryProvider(() => {
@@ -87,7 +106,7 @@ export async function startHeadless(install: DefoldInstall, project: DefoldProje
     manifest: existing?.manifest,
   };
   session.logs.appendLines([`--- engine started ${new Date().toISOString()} (${path.basename(exe)}) ---`]);
-  sessions.set(project.root, session);
+  setSession(session);
   registerEngine(child, exe, project.root);
 
   const onData = (d: Buffer) => {
@@ -136,8 +155,54 @@ export function attachEditorSession(
     consoleSeen,
     consoleTail,
   };
-  sessions.set(project.root, session);
+  setSession(session);
   return session;
+}
+
+/**
+ * Track a debug engine started outside this plugin and the editor (a device, a debug bundle, a dmengine started by
+ * hand) by its engine service address, and stream its log. Only lines logged after connecting are captured.
+ */
+export async function attachExternalSession(
+  project: DefoldProject,
+  host: string,
+  port: number,
+): Promise<{ session: EngineSession; info: EngineInfo; logPort?: number; logError?: string }> {
+  const serviceUrl = `http://${host.includes(':') ? `[${host}]` : host}:${port}`;
+  if (!(await pingEngine(serviceUrl))) {
+    throw new Error(
+      `No Defold engine service answers at ${serviceUrl}. Only debug builds run it; it listens on port 8001 unless the engine ` +
+        `printed another one ("Engine service started on port N"). For a device, use its IP address on the same network.`,
+    );
+  }
+  const info = await engineInfo(serviceUrl).catch((): EngineInfo => ({}));
+  const existing = sessions.get(project.root);
+  if (existing?.backend === 'bob' && isRunning(existing) && existing.serviceUrl !== serviceUrl) await stopSession(existing);
+  const session: EngineSession = {
+    projectRoot: project.root,
+    backend: 'attached',
+    serviceUrl,
+    logs: existing?.logs ?? new LogBuffer(),
+    startedAt: Date.now(),
+    consoleSeen: 0,
+  };
+  session.logs.appendLines([`--- attached to ${serviceUrl} ${new Date().toISOString()} ---`]);
+  setSession(session);
+
+  const logPort = Number(info.log_port);
+  if (!logPort) return { session, info, logError: 'the engine service did not report a log port' };
+  try {
+    session.logSocket = await connectLogService(host, logPort, session.logs, () => {
+      if (!session.logSocket) return;
+      void pingEngine(serviceUrl).then((alive) => {
+        session.logs.appendLines([alive ? '--- log stream closed (the engine still answers) ---' : '--- engine stopped (log stream closed) ---']);
+        if (!alive) session.exited ??= { code: null, signal: null };
+      });
+    });
+    return { session, info, logPort };
+  } catch (err) {
+    return { session, info, logPort, logError: (err as Error).message };
+  }
 }
 
 /** Copy new editor console lines into the session log buffer. */
@@ -202,8 +267,11 @@ export async function stopSession(session: EngineSession): Promise<void> {
       unregisterEngine(session.child.pid);
     }
   } else {
-    await sleep(500);
+    // An attached engine is gone once its log stream closes; otherwise give the editor's game a moment to quit.
+    const deadline = Date.now() + (session.logSocket ? 4000 : 500);
+    while (!session.exited && Date.now() < deadline) await sleep(100);
     session.exited ??= { code: 0, signal: null };
+    closeLogStream(session);
   }
 }
 

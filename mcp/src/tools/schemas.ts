@@ -30,9 +30,9 @@ export const buildInput = z.object({
 export const runInput = z.object({
   project,
   action: z
-    .enum(['start', 'stop', 'restart', 'reload', 'command'])
+    .enum(['start', 'stop', 'restart', 'reload', 'command', 'attach'])
     .default('start')
-    .describe('start (builds first), stop, restart, reload = hot-reload changed resources into the running game, command = engine command.'),
+    .describe('start (builds first), stop, restart, reload = hot-reload changed resources into the running game, command = engine command, attach = connect to a debug engine started elsewhere (phone, debug bundle, dmengine started by hand) at host/port.'),
   backend: z.enum(['auto', 'editor', 'bob']).default('auto'),
   wait_seconds: z
     .number()
@@ -46,6 +46,14 @@ export const runInput = z.object({
     .describe('Engine command for action=command.'),
   width: z.number().int().positive().optional().describe('Window width for command=resize.'),
   height: z.number().int().positive().optional().describe('Window height for command=resize.'),
+  host: z.string().optional().describe('For action=attach: IP address or host name of the machine or device running the game (default 127.0.0.1).'),
+  port: z
+    .number()
+    .int()
+    .min(1)
+    .max(65535)
+    .optional()
+    .describe('For action=attach: engine service port (default 8001; engines started with a dynamic port print "Engine service started on port N").'),
 });
 
 export const logsInput = z.object({

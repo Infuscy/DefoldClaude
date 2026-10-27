@@ -25,7 +25,7 @@ docs of the Defold version actually installed, and use `docs` for concepts.
 | Check files without building | `validate` |
 | What uses a file, folder or Lua module (before renaming, moving or deleting it) | `find_references` |
 | Compile and get errors with file:line | `build` |
-| Run, stop, hot-reload, physics debug | `run` |
+| Run, stop, hot-reload, physics debug, attach to a game on a device | `run` |
 | Engine output, prints, Lua errors | `logs` |
 | See the game / a scene | `screenshot` (`source=game` or `source=preview` with `path`) |
 | Live object positions and components | `inspect` (`elements=true` lists GUI/game elements with screen bounds) |

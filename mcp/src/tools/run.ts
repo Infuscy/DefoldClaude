@@ -2,6 +2,7 @@ import { buildHeadless, runBob } from '../runtime/bob.js';
 import { editorCommand, editorConsole } from '../runtime/editor.js';
 import {
   attachEditorSession,
+  attachExternalSession,
   changedResources,
   discoverEditorTarget,
   engineCommand,
@@ -28,7 +29,7 @@ export const runTool = defineTool({
   name: 'run',
   title: 'Run Defold game',
   description:
-    `Start, stop, restart or hot-reload the game, or send an engine command (toggle_physics_debug, toggle_profile, resize). start builds first, launches the engine (through the editor when open, else headless dmengine) and returns the first log lines plus any Lua errors seen within wait_seconds. reload pushes changed resources into the running game without restarting.`,
+    `Start, stop, restart or hot-reload the game, or send an engine command (toggle_physics_debug, toggle_profile, resize). start builds first, launches the engine (through the editor when open, else headless dmengine) and returns the first log lines plus any Lua errors seen within wait_seconds. reload pushes changed resources into the running game without restarting. attach connects to a debug build started some other way (a phone, a debug bundle, dmengine started by hand) through its engine service at host:port and streams its log; logs, inspect, input and command then work on it.`,
   inputSchema: runInput,
   annotations: { readOnlyHint: false },
   async handler(args, ctx) {
@@ -50,6 +51,8 @@ export const runTool = defineTool({
         }
         case 'reload':
           return reload(project, args.wait_seconds, ctx.signal);
+        case 'attach':
+          return attach(project, args.host ?? '127.0.0.1', args.port ?? 8001, args.wait_seconds);
         case 'command': {
           if (!args.command) return errorResult('action=command needs "command" (toggle_physics_debug, toggle_profile or resize).');
           const s = await currentSession(project);
@@ -116,6 +119,9 @@ async function start(
 async function reload(project: DefoldProject, waitSeconds: number, signal: AbortSignal) {
   const s = await currentSession(project);
   if (!isRunning(s)) return errorResult('No running game to reload. Use run action=start.');
+  if (s.backend === 'attached') {
+    return errorResult('Hot reload needs a game started by run action=start or by the Defold editor; an attached engine runs its own build. Rebuild and redeploy it, or start the game here.');
+  }
   const fromCursor = s.logs.cursor;
   if (s.backend === 'editor' && s.editor) {
     const r = await editorBuildCommand(project, s.editor, 'hot-reload', { signal });
@@ -132,6 +138,17 @@ async function reload(project: DefoldProject, waitSeconds: number, signal: Abort
   if (!changed.length) return textResult('Rebuilt; no compiled resources changed, nothing to reload.');
   await reloadResources(s, changed);
   return report(s, waitSeconds, `Hot-reloaded ${changed.length} resource(s): ${changed.join(', ')}`, '', fromCursor);
+}
+
+async function attach(project: DefoldProject, host: string, port: number, waitSeconds: number) {
+  const fromCursor = getSession(project.root)?.logs.cursor ?? 0;
+  const { session, info, logPort, logError } = await attachExternalSession(project, host, port);
+  const engine = [info.version && `Defold ${info.version}`, info.platform].filter(Boolean).join(', ');
+  const header = `Attached to the engine at ${session.serviceUrl}${engine ? ` (${engine})` : ''}`;
+  const note = logError
+    ? `No log stream: ${logError}. inspect and command still work.`
+    : `Streaming its log from port ${logPort}. Only lines logged from now on are captured.`;
+  return report(session, waitSeconds, header, note, fromCursor);
 }
 
 /** Wait, then summarize new log lines and Lua errors since the session (re)started. */

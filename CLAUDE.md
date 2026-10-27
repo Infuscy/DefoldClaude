@@ -18,7 +18,8 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
   regenerated `plugins/defold/dist/*.mjs` together with the source change (CI fails on stale bundles).
 - `npx tsx scripts/smoke.ts <projectDir> <tool> '<json args>'` — call a tool through the real stdio bundle.
 - `npx tsx scripts/e2e-run.ts "<project>" bob|editor [--in-place]` — build/run/logs/screenshot/reload loop;
-  `scripts/e2e-edit.ts "<project>"` — edit_resource → validate → bob build; `scripts/e2e-orphan.ts`.
+  `scripts/e2e-edit.ts "<project>"` — edit_resource → validate → bob build; `scripts/e2e-orphan.ts`;
+  `scripts/e2e-attach.ts "<project>"` — run action=attach on a dmengine started outside the server.
 - `npm run fetch:corpus` then `npm run test:corpus` — byte-identical round-trip and zero-false-positive gates
   on Defold's save_data_project, defold/examples, builtins and the local example project.
 - `npx tsx scripts/check-skills.ts` — every API/tool named in skills must exist (needs local Defold).
