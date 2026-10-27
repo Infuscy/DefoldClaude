@@ -54,6 +54,11 @@ game. Projects with native extensions are built with Defold's cloud build server
 - Node.js 20+ on `PATH` (the MCP server and hooks are plain bundled JavaScript; nothing to `npm install`)
 - The Defold editor installed (it provides Java, bob, the engine and the API docs). It is found automatically through
   the editor's `installations.json`; otherwise set the `defold_path` option.
+  - **Without the editor** (CI, cloud or Linux sessions): ask Claude to run `status` with `download="stable"` (or a
+    release such as `1.13.2`). It fetches `bob.jar` (which also carries the engine and builtins) and the API reference
+    from d.defold.com over HTTPS, about 250 MB, cached per version. Builds then need a Java the plugin does not install:
+    JDK 25 for Defold 1.13+ (for example [Eclipse Temurin](https://adoptium.net)), via `JAVA_HOME` or `PATH`. Editor-only
+    features (`new_project` templates, scene previews, editor builds) are not available in this mode.
 - Screenshots of the running game: Windows window capture, or in-engine capture on any platform when the project
   includes Defold's [Automation Bridge](https://github.com/defold/extension-automation-bridge) extension, which also
   enables the `input` tool. `/defold:setup-bridge` adds it (debug builds only; built on Defold's cloud build server).

@@ -14,6 +14,9 @@ export const newProjectTool = defineTool({
   annotations: { readOnlyHint: false },
   async handler(args, ctx) {
     const install = requireInstall();
+    if (install.source === 'download' || install.source === 'bob-jar') {
+      return errorResult('The template list ships with the Defold editor, not with bob.jar. Install the Defold editor, or create game.project and the main collection by hand (see the defold skill).');
+    }
     const templates = await listTemplates(install);
     const template = findTemplate(templates, args.template);
     if (!template) {

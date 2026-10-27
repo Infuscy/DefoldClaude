@@ -37,6 +37,8 @@ The plugin also validates Defold files automatically after every Write/Edit and 
 ## Workflow
 
 1. `status` → note the Defold version, the project root, and whether the editor has the project open.
+   If no Defold installation is found, ask the user before running `status download=stable` (about 250 MB); builds
+   then need the Java version `status` names.
    If the editor is open, ask the user to save their unsaved changes before you edit files on disk.
    The editor reloads the files you change.
 2. Read before writing. Look at `game.project`, the main collection (`read_resource`) and the relevant

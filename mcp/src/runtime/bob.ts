@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { javaProblem } from '../env/java.js';
 import type { DefoldInstall } from '../env/locate.js';
 import { cacheRoot, hostPlatform } from '../env/platform.js';
 import type { DefoldProject } from '../env/project.js';
@@ -35,6 +36,11 @@ export interface BobOptions {
 const DEFAULT_BUILD_SERVER = 'https://build.defold.com';
 
 export async function runBob(install: DefoldInstall, project: DefoldProject, options: BobOptions): Promise<BobRun> {
+  // Outside the editor (which bundles its JDK) bob runs on whatever Java is installed; say plainly when it is too old.
+  if (install.source === 'download' || install.source === 'bob-jar' || !install.javaPath) {
+    const problem = await javaProblem(install.javaPath, install.jarPath, install.version);
+    if (problem) throw new Error(problem);
+  }
   if (!install.javaPath) throw new Error('No Java runtime found for bob (the Defold install looks incomplete). Run the status tool.');
   if (!install.jarPath) throw new Error('No bob/editor jar found. Run the status tool.');
 

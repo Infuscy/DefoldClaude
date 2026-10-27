@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDir, isFile, readJsonSync, readTextSync } from '../util/fsx.js';
 import { interpolateIni, parseIni } from '../util/ini.js';
+import { listDownloads } from './download.js';
+import { findJava } from './java.js';
 import { commonInstallDirs, defoldSupportDirs, exeSuffix, hostPlatform, usableEnv } from './platform.js';
 
 export interface DefoldInstall {
@@ -14,12 +16,14 @@ export interface DefoldInstall {
   javaPath?: string;
   /** Jar that contains com.dynamo.bob.Bob (editor jar, or a standalone bob.jar). */
   jarPath?: string;
+  /** Archive with the API reference (doc/*.sdoc) when the jar has none (a downloaded bob.jar). */
+  docsPath?: string;
   /** Editor launcher (Defold.exe / Defold.app / Defold). */
   editorExe?: string;
   /** Editor unpack directory for this sha1 (contains dmengine, LuaLS, annotations) if the editor has run. */
   unpackDir?: string;
   /** How the install was found. */
-  source: 'env' | 'installations.json' | 'common-location' | 'bob-jar';
+  source: 'env' | 'installations.json' | 'common-location' | 'bob-jar' | 'download';
   problems: string[];
 }
 
@@ -79,6 +83,12 @@ export function locateDefold(options: { refresh?: boolean } = {}): LocateResult 
     }
   }
 
+  if (!install) {
+    const latest = listDownloads()[0];
+    searched.push(`download: ${latest ? latest.dir : 'none (the status tool can download bob.jar and the API docs)'}`);
+    if (latest) install = readDownload(latest);
+  }
+
   cached = { install, searched };
   return cached;
 }
@@ -116,10 +126,7 @@ function readInstall(root: string, source: DefoldInstall['source']): DefoldInsta
       jarPath = undefined;
     }
   }
-  if (!javaPath) {
-    const fallback = javaFromEnv();
-    if (fallback) javaPath = fallback;
-  }
+  if (!javaPath) javaPath = findJava();
 
   const editorExe = findEditorExe(root);
   const unpackDir = sha1 ? findUnpackDir(sha1) : undefined;
@@ -127,19 +134,11 @@ function readInstall(root: string, source: DefoldInstall['source']): DefoldInsta
 }
 
 function readBobOnly(bobJar: string): DefoldInstall {
-  const javaPath = javaFromEnv();
-  const problems: string[] = [];
-  if (!javaPath) problems.push('No Java found for bob.jar: set JAVA_HOME (bob needs OpenJDK 25 for Defold 1.13).');
-  return { root: path.dirname(bobJar), jarPath: path.resolve(bobJar), javaPath, source: 'bob-jar', problems };
+  return { root: path.dirname(bobJar), jarPath: path.resolve(bobJar), javaPath: findJava(), source: 'bob-jar', problems: [] };
 }
 
-function javaFromEnv(): string | undefined {
-  const home = process.env.JAVA_HOME;
-  if (usableEnv(home)) {
-    const p = path.join(home, 'bin', 'java' + exeSuffix());
-    if (isFile(p)) return p;
-  }
-  return undefined;
+function readDownload(d: ReturnType<typeof listDownloads>[number]): DefoldInstall {
+  return { root: d.dir, version: d.version, sha1: d.sha1, channel: d.channel, jarPath: d.jarPath, docsPath: d.docsPath, javaPath: findJava(), source: 'download', problems: [] };
 }
 
 function findEditorExe(root: string): string | undefined {
@@ -186,6 +185,7 @@ export function describeInstall(install: DefoldInstall): string {
     `  install: ${install.root} [found via ${install.source}]`,
     `  java:    ${install.javaPath ?? 'MISSING'}`,
     `  bob jar: ${install.jarPath ?? 'MISSING'}`,
+    ...(install.docsPath ? [`  api docs: ${install.docsPath}`] : []),
     `  editor:  ${install.editorExe ?? 'not found'}`,
     `  unpack:  ${install.unpackDir ?? 'not present (engine will be extracted from the jar on first run)'}`,
   ];
