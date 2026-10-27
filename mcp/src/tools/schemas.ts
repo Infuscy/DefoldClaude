@@ -6,7 +6,13 @@ const project = z
   .optional()
   .describe('Folder containing game.project (or any file inside the project). Defaults to the session project.');
 
-export const statusInput = z.object({ project });
+export const statusInput = z.object({
+  project,
+  download: z
+    .string()
+    .optional()
+    .describe('Only when no Defold editor is installed: download bob.jar and the API reference (about 250 MB, cached) for this version: stable, beta, alpha or a release such as 1.13.2. Builds then need a matching Java (JDK 25 for Defold 1.13+).'),
+});
 
 export const buildInput = z.object({
   project,

@@ -51,10 +51,11 @@ export async function loadApiIndex(install: DefoldInstall): Promise<ApiElement[]
   } catch {
     // build below
   }
-  if (!install.jarPath) throw new Error('No Defold jar available to read the API documentation from.');
-  logInfo('building API index from', install.jarPath);
+  const source = install.docsPath ?? install.jarPath;
+  if (!source) throw new Error('No Defold jar available to read the API documentation from.');
+  logInfo('building API index from', source);
   const elements: ApiElement[] = [];
-  const zip = await ZipFile.open(install.jarPath);
+  const zip = await ZipFile.open(source);
   try {
     for (const entry of zip.list('doc/')) {
       if (!entry.name.endsWith('.sdoc')) continue;

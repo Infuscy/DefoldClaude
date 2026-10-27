@@ -118,7 +118,7 @@ async function sessionStart(input: HookInput): Promise<number> {
   const install = locateDefold().install;
   const editorOpen = !!editorPortFiles(project).port;
   const parts = [
-    `Defold project "${project.title}" at ${root}${install?.version ? ` (Defold ${install.version} installed)` : ' (Defold installation not found; run the status tool)'}.`,
+    `Defold project "${project.title}" at ${root}${install?.version ? ` (Defold ${install.version} installed)` : ' (Defold installation not found; run the status tool, which can also download bob.jar)'}.`,
     'Use the defold skill and the defold MCP tools: status, api (exact Lua signatures for this version), docs, read_resource/edit_resource (scene files), validate, build, run, logs, screenshot, inspect.',
     'Never edit build/ or .internal/. Defold files are checked automatically after each edit.',
   ];
