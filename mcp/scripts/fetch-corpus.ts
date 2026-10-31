@@ -1,7 +1,7 @@
 // Download/collect Defold text resources used by the corpus tests into test/corpus/ (gitignored).
 // Sources: Defold's editor round-trip project (save_data_project @ tag), defold/examples (CC0),
 // the local editor jar's builtins, and a local project (read-only copy of its text files).
-// Usage: npx tsx scripts/fetch-corpus.ts [tag=1.14.0] [localProject="C:/GIT/DefoldProjects/Mobile Game"]
+// Usage: npx tsx scripts/fetch-corpus.ts [tag=1.14.0] [localProject=$DEFOLD_LOCAL_PROJECT]
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,7 +12,7 @@ import { ZipFile } from '../src/env/zip.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const corpus = path.resolve(here, '../test/corpus');
 const tag = process.argv[2] ?? '1.14.0';
-const localProject = process.argv[3] ?? 'C:/GIT/DefoldProjects/Mobile Game';
+const localProject = process.argv[3] ?? process.env.DEFOLD_LOCAL_PROJECT ?? '';
 const BINARY = /\.(png|jpe?g|gif|webp|ogg|wav|mp3|ttf|otf|glb|gltf|bin|dae|fbx|car|zip|jar|so|dll|exe|a|lib|icns|ico|psd|ktx|basis|xcf|pdf)$/i;
 
 function save(rel: string, data: Buffer | string): void {
@@ -96,7 +96,7 @@ async function collectBuiltins(): Promise<void> {
 
 function collectLocal(): void {
   const target = path.join(corpus, 'local');
-  if (!fs.existsSync(localProject)) return console.log('local: skipped');
+  if (!localProject || !fs.existsSync(localProject)) return console.log('local: skipped (no local project given)');
   fs.rmSync(target, { recursive: true, force: true });
   let n = 0;
   const walk = (dir: string) => {

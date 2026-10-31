@@ -2,6 +2,7 @@
   "name": "defold-mcp-server",
   "version": "0.2.7",
   "private": true,
+  "license": "MIT",
   "description": "MCP server and hooks for the Defold game engine (bundled into plugins/defold/dist)",
   "type": "module",
   "engines": {

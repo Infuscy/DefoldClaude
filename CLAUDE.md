@@ -43,8 +43,9 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
   Regenerate all of them when targeting a new Defold version.
 
 ## Rules
-- Never modify user Defold projects in tests; copy them to a temp dir first. The reference project is
-  `C:\GIT\DefoldProjects\Mobile Game` (path with a space — keep it that way in tests).
+- Never modify user Defold projects in tests; copy them to a temp dir first. The reference project is a local
+  Defold project whose path contains a space (keep it that way in tests); pass it to `scripts/fetch-corpus.ts` or
+  set `DEFOLD_LOCAL_PROJECT`.
 - MCP stdio: never write to stdout from server code; log with `src/util/log.ts` (stderr).
 - Tool names and input schemas live in `mcp/src/tools/schemas.ts`; skills and evals depend on them.
 - Keep tool output compact (results are capped at ~24k chars); page long content.

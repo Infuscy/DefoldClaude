@@ -2,6 +2,12 @@
 
 A Claude Code plugin that makes Claude effective at building games with the [Defold](https://defold.com) engine.
 
+> **Unofficial.** This is a community project. It is not affiliated with, endorsed by or supported by the Defold
+> Foundation; "Defold" is used only to say which engine the plugin works with.
+>
+> **Status: experimental.** Developed and tested on Windows 11 with Defold 1.14.0. Version 0.2.7 is the Defold
+> tooling used in the [game-engine benchmark](https://infuscy.github.io/claude-code-2d-engines/) of 28 October 2026.
+
 | Without it, Claude… | With it, Claude… |
 |---|---|
 | guesses Lua APIs from other engines | looks up the **exact API of your installed Defold version** (`api`), plus the official manuals and examples (`docs`) |
@@ -65,7 +71,7 @@ game. Projects with native extensions are built with Defold's cloud build server
 
 ## Install
 
-From this private GitHub repository (needs git credentials, e.g. `gh auth login` followed by `gh auth setup-git`):
+From GitHub:
 
 ```bash
 claude plugin marketplace add Infuscy/DefoldClaude
@@ -75,10 +81,10 @@ claude plugin marketplace add Infuscy/DefoldClaude
 claude plugin install defold@defold-tools
 ```
 
-From a local clone:
+From a local clone (use the folder you cloned into):
 
 ```bash
-claude plugin marketplace add C:\GIT\DefoldClaude
+claude plugin marketplace add ./DefoldClaude
 ```
 
 ```bash
@@ -140,7 +146,7 @@ end-to-end scripts.
 Evals (`plugins/defold/evals`) run real Claude sessions with and without the plugin (they use your Claude usage):
 
 ```bash
-EVAL_DEFOLD_HOME=C:/GIT/Defold/Defold claude plugin eval plugins/defold --runs 1 --scaffold --allow-real-servers --allow-tools Edit Write "mcp__plugin_defold_defold__*"
+EVAL_DEFOLD_HOME=<your Defold editor folder> claude plugin eval plugins/defold --runs 1 --scaffold --allow-real-servers --allow-tools Edit Write "mcp__plugin_defold_defold__*"
 ```
 
 `--tag hard` selects the four harder project cases (version-specific physics API, runtime-only bugs, a nested GUI,
@@ -156,5 +162,6 @@ It copies each project out of the eval temp folders, builds it, runs it, and che
 
 ## License and notices
 
-Private project. Defold-derived data (schemas generated from Defold's `.proto` files, the builtins list, the
-`game.project` settings schema) is used under the Defold License; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The plugin's own code and text are under the [MIT License](LICENSE). Defold-derived data (schemas generated from
+Defold's `.proto` files, the builtins list, the `game.project` settings schema) is used under the Defold License;
+see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
