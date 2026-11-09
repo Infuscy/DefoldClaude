@@ -226,10 +226,44 @@ export interface SearchOptions {
 export function findExact(elements: ApiElement[], name: string, environment: SearchOptions['environment'] = 'all'): ApiElement[] {
   const n = name.trim();
   const pool = filterEnv(elements, environment);
-  let hits = pool.filter((e) => e.name === n);
-  if (!hits.length) hits = pool.filter((e) => e.name.toLowerCase() === n.toLowerCase());
-  if (!hits.length && !n.includes('.')) hits = pool.filter((e) => e.name.toLowerCase().endsWith('.' + n.toLowerCase()));
-  return hits;
+  const match = (list: ApiElement[]): ApiElement[] => {
+    let hits = list.filter((e) => e.name === n);
+    if (!hits.length) hits = list.filter((e) => e.name.toLowerCase() === n.toLowerCase());
+    if (!hits.length && !n.includes('.')) hits = list.filter((e) => e.name.toLowerCase().endsWith('.' + n.toLowerCase()));
+    return hits;
+  };
+  const hits = match(pool);
+  return hits.length ? hits : match(enumMembers(pool));
+}
+
+/**
+ * Enum members (go.EASING_OUTBACK, gui.PIVOT_CENTER, ...) as constants of their own. The docs only list them
+ * inside their enum, but scripts use them by name, so lookups and searches must find them.
+ */
+export function enumMembers(elements: ApiElement[]): ApiElement[] {
+  const top = new Set(elements.map((e) => e.name));
+  const out: ApiElement[] = [];
+  for (const e of elements) {
+    if (e.type !== 'ENUM') continue;
+    for (const m of e.members) {
+      if (!m.name || top.has(m.name)) continue;
+      out.push({
+        name: m.name,
+        type: 'CONSTANT',
+        namespace: e.namespace,
+        brief: m.doc,
+        description: `Member of the \`${e.name}\` enum${e.brief ? ` (${e.brief.toLowerCase()})` : ''}; look that up for all values.`,
+        params: [],
+        returns: [],
+        examples: '',
+        members: [],
+        environment: e.environment,
+        variant: e.variant,
+        source: e.source,
+      });
+    }
+  }
+  return out;
 }
 
 /** Vocabulary from other engines/frameworks mapped to the Defold API that does the job. */
@@ -303,6 +337,13 @@ export function searchApi(elements: ApiElement[], query: string, options: Search
   if (options.namespace) {
     const ns = options.namespace.toLowerCase();
     pool = pool.filter((e) => e.namespace.toLowerCase() === ns || e.namespace.toLowerCase().startsWith(ns + '.'));
+  }
+  // Add enum members the query asks for specifically: a word that names the member but not its enum
+  // ("outback", "EASING_OUTBACK"). A query for the enum itself ("easing") lists the enum, not its 40 values.
+  const enumNames = pool.filter((e) => e.type === 'ENUM').map((e) => e.name.toLowerCase());
+  const specific = words.filter((w) => !enumNames.some((n) => n.includes(w)));
+  if (specific.length) {
+    pool = pool.concat(enumMembers(pool).filter((m) => specific.some((w) => m.name.toLowerCase().includes(w))));
   }
   const scored: Array<[number, ApiElement]> = [];
   for (const e of pool) {

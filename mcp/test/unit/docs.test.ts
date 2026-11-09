@@ -48,6 +48,33 @@ describe('API index', () => {
     expect(searchApi(elements, 'move to target').map((e) => e.name)).toContain('go.animate');
   });
 
+  it('finds enum members by name and by search', () => {
+    const withEnums = [
+      ...elements,
+      el('go.EASING', 'Easing curves', {
+        type: 'ENUM',
+        members: [
+          { name: 'go.EASING_LINEAR', doc: 'linear interpolation', type: '' },
+          { name: 'go.EASING_OUTBACK', doc: 'out-back', type: '' },
+        ],
+      }),
+      el('sprite.play_properties', 'playback properties', { type: 'STRUCT', members: [{ name: 'offset?', doc: 'cursor', type: '' }] }),
+    ];
+    const exact = findExact(withEnums, 'go.EASING_OUTBACK');
+    expect(exact).toHaveLength(1);
+    expect(exact[0]).toMatchObject({ name: 'go.EASING_OUTBACK', type: 'CONSTANT', namespace: 'go', brief: 'out-back' });
+    expect(exact[0]!.description).toContain('go.EASING');
+    expect(findExact(withEnums, 'easing_outback')[0]!.name).toBe('go.EASING_OUTBACK');
+    expect(findExact(withEnums, 'go.EASING')[0]!.type).toBe('ENUM');
+    expect(findExact(withEnums, 'go.EASING_NOPE')).toHaveLength(0);
+    expect(findExact(withEnums, 'offset?')).toHaveLength(0);
+
+    expect(searchApi(withEnums, 'EASING_OUTBACK')[0]!.name).toBe('go.EASING_OUTBACK');
+    expect(searchApi(withEnums, 'outback').map((e) => e.name)).toEqual(['go.EASING_OUTBACK']);
+    // Asking for the enum lists the enum, not every value.
+    expect(searchApi(withEnums, 'easing').map((e) => e.name)).toEqual(['go.EASING']);
+  });
+
   it('cleans doc markup', () => {
     expect(clean('see [ref:go.get_position] of [type:vector3] <a href="/x">guide</a> <code>x</code>')).toBe('see `go.get_position` of vector3 guide `x`');
   });
