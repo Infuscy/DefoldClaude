@@ -5,8 +5,7 @@ import { buildHeadless, runBob } from '../runtime/bob.js';
 import { editorBob, editorCommand } from '../runtime/editor.js';
 import { AGENT_BUILD_DIR } from '../runtime/enginebin.js';
 import { summarizeIssues, type Issue } from '../runtime/issues.js';
-import { withLock } from '../runtime/processes.js';
-import { chooseBackend, editorBuildCommand, requireInstall, requireProject } from './common.js';
+import { chooseBackend, editorBuildCommand, requireInstall, requireProject, withBuildLock } from './common.js';
 import { defineTool } from './registry.js';
 import { textResult } from './result.js';
 import { buildInput } from './schemas.js';
@@ -21,7 +20,7 @@ export const buildTool = defineTool({
   async handler(args, ctx) {
     const project = requireProject(args.project);
     const backend = await chooseBackend(project, args.backend);
-    return withLock(`build:${project.root}`, async () => {
+    return withBuildLock(project, async () => {
       const started = Date.now();
       let success = false;
       let issues: Issue[] = [];

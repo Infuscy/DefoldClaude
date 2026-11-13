@@ -104,8 +104,14 @@ export const inputTool = defineTool({
       .filter(Boolean)
       .join('\n\n');
     if (args.screenshot) {
-      const shot = downscalePng(await bridgeScreenshot(session), 768);
-      return imageResult(shot.png.toString('base64'), `${text}\n\nScreenshot after the input (${shot.srcWidth}x${shot.srcHeight} window).`);
+      try {
+        const shot = downscalePng(await bridgeScreenshot(session), 768);
+        return imageResult(shot.png.toString('base64'), `${text}\n\nScreenshot after the input (${shot.srcWidth}x${shot.srcHeight} window).`);
+      } catch (e) {
+        // The input was sent; a failed capture must not hide what it did.
+        if (!(e instanceof BridgeError)) throw e;
+        return textResult(`${text}\n\nNo screenshot: ${e.message}`);
+      }
     }
     return textResult(text);
   },

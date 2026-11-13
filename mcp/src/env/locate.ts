@@ -47,8 +47,9 @@ export function locateDefold(options: { refresh?: boolean } = {}): LocateResult 
 
   let install: DefoldInstall | undefined;
 
+  // CLAUDE_PLUGIN_OPTION_DEFOLD_PATH: the "defold_path" option as hooks receive it (the MCP server gets it as DEFOLD_HOME).
   // EVAL_DEFOLD_HOME: `claude plugin eval` only forwards EVAL_* variables to its isolated runs.
-  for (const envHome of [process.env.DEFOLD_HOME, process.env.EVAL_DEFOLD_HOME]) {
+  for (const envHome of [process.env.DEFOLD_HOME, process.env.CLAUDE_PLUGIN_OPTION_DEFOLD_PATH, process.env.EVAL_DEFOLD_HOME]) {
     if (!install && usableEnv(envHome)) install = tryRoot(envHome, 'env');
   }
 

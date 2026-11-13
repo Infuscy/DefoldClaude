@@ -1,7 +1,36 @@
-import { describe, expect, it } from 'vitest';
+import { PassThrough } from 'node:stream';
+import { describe, expect, it, vi } from 'vitest';
 import { LogBuffer } from '../../src/runtime/logs.js';
+import { readLines } from '../../src/runtime/processes.js';
 import { encodeExit, encodeReloadBatches, encodeResize } from '../../src/runtime/protobuf.js';
 import { changedResources } from '../../src/runtime/engine.js';
+
+describe('readLines', () => {
+  it('emits whole lines when a line or a multi-byte character is split across chunks', async () => {
+    const stream = new PassThrough();
+    const lines: string[] = [];
+    readLines(stream, (l) => lines.push(l));
+    const bytes = Buffer.from('INFO:ENGINE: Engine service started on port 54714\r\nDEBUG:SCRIPT: héllo\nlast line without newline', 'utf8');
+    const inPortLine = bytes.indexOf('port') + 2;
+    const inCharacter = bytes.indexOf(0xc3) + 1; // between the two bytes of "é"
+    stream.write(bytes.subarray(0, inPortLine));
+    stream.write(bytes.subarray(inPortLine, inCharacter));
+    stream.end(bytes.subarray(inCharacter));
+    await new Promise((r) => stream.on('end', r));
+    expect(lines).toEqual(['INFO:ENGINE: Engine service started on port 54714', 'DEBUG:SCRIPT: héllo', 'last line without newline']);
+  });
+
+  it('flushes an unfinished line once', async () => {
+    const stream = new PassThrough();
+    const lines: string[] = [];
+    const reader = readLines(stream, (l) => lines.push(l));
+    stream.write('done\npartial');
+    await vi.waitFor(() => expect(lines).toEqual(['done']));
+    reader.flush();
+    reader.flush();
+    expect(lines).toEqual(['done', 'partial']);
+  });
+});
 
 describe('LogBuffer', () => {
   it('extracts Lua runtime errors with traceback (engine stdout format)', () => {
