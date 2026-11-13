@@ -1,6 +1,7 @@
 import { spawn, execFile, type ChildProcess, type SpawnOptions } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
 import { promisify } from 'node:util';
 import { cacheRoot } from '../env/platform.js';
 import { logDebug, logInfo } from '../util/log.js';
@@ -27,8 +28,7 @@ export function runCommand(
     let output = '';
     let pending = '';
     let timedOut = false;
-    const onData = (d: Buffer) => {
-      const s = d.toString('utf8');
+    const onData = (s: string) => {
       output += s;
       if (options.onLine) {
         pending += s;
@@ -37,8 +37,10 @@ export function runCommand(
         for (const l of lines) options.onLine(l);
       }
     };
-    child.stdout?.on('data', onData);
-    child.stderr?.on('data', onData);
+    for (const stream of [child.stdout, child.stderr]) {
+      stream?.setEncoding('utf8'); // decoded per stream, so a multi-byte character split across chunks survives
+      stream?.on('data', onData);
+    }
     const timer = options.timeoutMs
       ? setTimeout(() => {
           timedOut = true;
@@ -58,6 +60,30 @@ export function runCommand(
       resolve({ code, signal, output, timedOut, durationMs: Date.now() - started });
     });
   });
+}
+
+/**
+ * Call `onLine` for every complete line of a child process stream. Chunks are arbitrary byte ranges, so a line
+ * (or a multi-byte character) can arrive split in two. `flush` emits a last line that has no newline yet.
+ */
+export function readLines(stream: Readable | null | undefined, onLine: (line: string) => void): { flush(): void } {
+  let pending = '';
+  const flush = () => {
+    if (!pending) return;
+    const rest = pending;
+    pending = '';
+    onLine(rest);
+  };
+  if (!stream) return { flush };
+  stream.setEncoding('utf8');
+  stream.on('data', (chunk: string) => {
+    pending += chunk;
+    const lines = pending.split(/\r?\n/);
+    pending = lines.pop() ?? '';
+    for (const line of lines) onLine(line);
+  });
+  stream.on('end', flush);
+  return { flush };
 }
 
 /** Kill a process and its children (Windows: taskkill /T). */

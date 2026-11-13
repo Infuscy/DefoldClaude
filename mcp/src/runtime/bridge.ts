@@ -2,9 +2,16 @@
 // scene/element queries, FIFO input with receipts, and in-engine screenshots on the engine service port.
 import fsp from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import type { EngineSession } from './engine.js';
+import { isLocalEngine, type EngineSession } from './engine.js';
 
 export const BRIDGE_DEPENDENCY_REPO = 'https://github.com/defold/extension-automation-bridge';
+
+/** Why a game on another machine cannot be captured: neither its window nor the file the bridge saves is here. */
+export const REMOTE_CAPTURE =
+  'This engine runs on another machine or device: its window cannot be captured from here, and the Automation Bridge ' +
+  'saves in-engine captures to a file on that device. Use logs, inspect and input on it, or run the game on this machine to take screenshots.';
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export interface BridgeHealth {
   version: string;
@@ -162,6 +169,8 @@ export async function windowSize(session: EngineSession): Promise<{ width: numbe
 
 /** In-engine screenshot: schedule a capture, wait for completion, read the PNG the engine wrote. */
 export async function bridgeScreenshot(session: EngineSession): Promise<Buffer> {
+  // The bridge answers with the path of a file on the machine that runs the game, not with the image.
+  if (!isLocalEngine(session)) throw new BridgeError(REMOTE_CAPTURE);
   const job = await call<{ capture_id: number; state: string; path: string }>(session, '/screenshot');
   const deadline = Date.now() + 10_000;
   let state = job;
@@ -170,7 +179,26 @@ export async function bridgeScreenshot(session: EngineSession): Promise<Buffer> 
     state = await call(session, `/screenshot/status?capture_id=${job.capture_id}`);
   }
   if (state.state !== 'complete') throw new BridgeError(`Screenshot did not complete (${state.state}).`);
-  const png = await fsp.readFile(state.path);
-  await fsp.rm(state.path, { force: true });
+  return readCapture(state.path);
+}
+
+/**
+ * Read a capture the bridge saved, then remove it. The path comes from the engine's answer, so the file is only
+ * deleted once it has proved to be a PNG image; anything else is left alone and reported.
+ */
+export async function readCapture(file: unknown): Promise<Buffer> {
+  if (typeof file !== 'string' || !/\.png$/i.test(file)) {
+    throw new BridgeError(`The bridge reported an unexpected capture file (${String(file).slice(0, 200)}); nothing was read.`);
+  }
+  let png: Buffer;
+  try {
+    png = await fsp.readFile(file);
+  } catch (err) {
+    throw new BridgeError(`Could not read the capture the bridge saved at ${file}: ${(err as Error).message}`);
+  }
+  if (png.length < PNG_SIGNATURE.length || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+    throw new BridgeError(`The capture file ${file} is not a PNG image; it was left in place.`);
+  }
+  await fsp.rm(file, { force: true });
   return png;
 }

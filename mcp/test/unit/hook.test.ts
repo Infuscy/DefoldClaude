@@ -4,14 +4,29 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { SCHEMA_DEFOLD_VERSION } from '../../src/ddf/schema.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hook = path.resolve(here, '../../../plugins/defold/dist/hook.mjs');
 let root: string;
+let installs: string;
+
+/** A folder that passes for a Defold install of `version`; the hook only reads the version from its config. */
+function fakeInstall(version: string): string {
+  const dir = path.join(installs, version);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'config'), `[build]\nversion = ${version}\n`);
+  return dir;
+}
 
 function runHook(event: string, input: object, env: Record<string, string> = {}) {
   const started = Date.now();
-  const r = spawnSync(process.execPath, [hook, event], { input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, ...env } });
+  // The "installed" Defold is pinned to the schema's version, so results do not depend on this machine's Defold.
+  const r = spawnSync(process.execPath, [hook, event], {
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+    env: { ...process.env, DEFOLD_HOME: fakeInstall(SCHEMA_DEFOLD_VERSION), ...env },
+  });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr, ms: Date.now() - started };
 }
 
@@ -23,6 +38,7 @@ function write(rel: string, text: string): string {
 }
 
 beforeAll(() => {
+  installs = fs.mkdtempSync(path.join(os.tmpdir(), 'defold installs '));
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'defold hook '));
   write('game.project', '[project]\ntitle = Hook Test\n\n[bootstrap]\nmain_collection = /main/main.collectionc\n');
   write('main/main.atlas', 'images {\n  image: "/main/logo.png"\n}\n');
@@ -30,7 +46,10 @@ beforeAll(() => {
   write('main/main.script', 'function init(self)\nend\n');
 });
 
-afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+afterAll(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(installs, { recursive: true, force: true });
+});
 
 describe.skipIf(!fs.existsSync(hook))('post-edit hook (built bundle)', () => {
   it('is silent for a valid collection', () => {
@@ -49,6 +68,20 @@ describe.skipIf(!fs.existsSync(hook))('post-edit hook (built bundle)', () => {
     expect(r.code).toBe(2);
     expect(r.stderr).toContain('/main/bad.collection:4');
     expect(r.stderr).toContain('did you mean "prototype"');
+  });
+
+  it('only warns about an unknown field when the installed Defold is not the schema version', () => {
+    const f = write('main/newer.go', 'components {\n  id: "s"\n  component: "/main/main.script"\n  field_from_another_version: 1\n}\n');
+    const input = { tool_name: 'Write', tool_input: { file_path: f }, cwd: root };
+    expect(runHook('post-edit', input).code).toBe(2);
+
+    const other = runHook('post-edit', input, { DEFOLD_HOME: fakeInstall('0.0.1') });
+    expect(other.code).toBe(0);
+    expect(JSON.parse(other.stdout).hookSpecificOutput.additionalContext).toContain('WARNING /main/newer.go:4: Unknown field "field_from_another_version"');
+
+    // The defold_path plugin option reaches hooks under this name.
+    const option = runHook('post-edit', input, { DEFOLD_HOME: '', CLAUDE_PLUGIN_OPTION_DEFOLD_PATH: fakeInstall('0.0.1') });
+    expect(option.code).toBe(0);
   });
 
   it('checks inside embedded component data', () => {

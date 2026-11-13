@@ -1,8 +1,8 @@
 import { connectEditor, editorPreview } from '../runtime/editor.js';
-import { isRunning, type EngineSession } from '../runtime/engine.js';
+import { isLocalEngine, isRunning, type EngineSession } from '../runtime/engine.js';
 import { pidForListeningPort } from '../runtime/processes.js';
 import { captureWindow, captureWindowFrames } from '../runtime/screenshot.js';
-import { bridgeHealth, bridgeScreenshot } from '../runtime/bridge.js';
+import { bridgeHealth, bridgeScreenshot, REMOTE_CAPTURE } from '../runtime/bridge.js';
 import { contactSheet, downscalePng } from '../util/png.js';
 import { normalizeProjectPath } from '../env/project.js';
 import { requireProject } from './common.js';
@@ -33,6 +33,8 @@ export const screenshotTool = defineTool({
 
     const session = await currentSession(project);
     if (!isRunning(session)) return errorResult('The game is not running. Start it with run action=start, or use source=preview.');
+    // Both ways of capturing need the game on this machine: its window, or the file the bridge saves.
+    if (!isLocalEngine(session)) return errorResult(REMOTE_CAPTURE);
     if (args.frames > 1) return burst(session, args.frames, args.interval_ms, args.max_size);
     if (await bridgeHealth(session)) {
       // In-engine capture through the Automation Bridge: exact frame, works on every platform and when occluded.
@@ -55,9 +57,6 @@ export const screenshotTool = defineTool({
 
 /** The local process whose window shows the game. */
 async function windowPid(session: EngineSession): Promise<number> {
-  if (session.backend === 'attached' && !isLoopback(session.serviceUrl)) {
-    throw new Error('This engine runs on another machine or device, so its window cannot be captured here. Add the Automation Bridge (/defold:setup-bridge) to capture frames in-engine.');
-  }
   const pid = session.pid ?? (session.serviceUrl ? await pidForListeningPort(Number(new URL(session.serviceUrl).port)) : undefined);
   if (!pid) throw new Error('Could not find the game process to capture.');
   return pid;
@@ -95,9 +94,4 @@ async function burst(session: EngineSession, frames: number, intervalMs: number,
       `numbered 1–${frames} left to right, top to bottom (${sheet.cols}x${sheet.rows} grid, image ${sheet.width}x${sheet.height}). ` +
       `Pixels changed from frame to frame: ${steps}.${verdict}`,
   );
-}
-
-function isLoopback(url: string | undefined): boolean {
-  const host = url ? new URL(url).hostname : '';
-  return host === 'localhost' || host === '[::1]' || /^127\./.test(host);
 }

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import type net from 'node:net';
+import os from 'node:os';
 import path from 'node:path';
 import type { DefoldInstall } from '../env/locate.js';
 import type { DefoldProject } from '../env/project.js';
@@ -12,7 +13,7 @@ import { editorConsole, type EditorConnection } from './editor.js';
 import { onShutdown } from './lifecycle.js';
 import { connectLogService, engineInfo, type EngineInfo } from './logservice.js';
 import { LogBuffer } from './logs.js';
-import { killTree, registerEngine, unregisterEngine } from './processes.js';
+import { killTree, readLines, registerEngine, unregisterEngine } from './processes.js';
 import { encodeExit, encodeReloadBatches, encodeResize } from './protobuf.js';
 import { addRuntimeSummaryProvider } from './state.js';
 
@@ -55,6 +56,22 @@ export function getSession(projectRoot: string): EngineSession | undefined {
 export function isRunning(s: EngineSession | undefined): s is EngineSession {
   return !!s && !s.exited;
 }
+
+/**
+ * False for an engine attached on another machine or device: its window and the files it writes are out of reach.
+ * Engines started here or by the editor always run on this machine.
+ */
+export function isLocalEngine(session: EngineSession): boolean {
+  if (session.backend !== 'attached') return true;
+  if (!session.serviceUrl) return false;
+  const host = new URL(session.serviceUrl).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (host === 'localhost' || host === '::1' || /^127\./.test(host)) return true;
+  // Attached through the address of one of this machine's own network interfaces.
+  return Object.values(os.networkInterfaces()).some((list) => list?.some((i) => i.address.toLowerCase() === host));
+}
+
+/** The line a debug engine prints once its service (reload, scene graph, commands) listens. */
+const SERVICE_PORT = /Engine service started on port (\d+)/;
 
 /** Make `session` the project's current one, closing the log stream of the one it replaces. */
 function setSession(session: EngineSession): void {
@@ -113,18 +130,17 @@ export async function startHeadless(install: DefoldInstall, project: DefoldProje
   setSession(session);
   registerEngine(child, exe, project.root);
 
-  const onData = (d: Buffer) => {
-    const s = d.toString('utf8');
-    session.logs.append(s);
+  // Whole lines only: a chunk of output can end in the middle of the line that announces the service port.
+  const onLine = (line: string) => {
+    session.logs.appendLines([line]);
     if (!session.serviceUrl) {
-      const m = /Engine service started on port (\d+)/.exec(s);
+      const m = SERVICE_PORT.exec(line);
       if (m) session.serviceUrl = `http://127.0.0.1:${m[1]}`;
     }
   };
-  child.stdout?.on('data', onData);
-  child.stderr?.on('data', onData);
+  const output = [readLines(child.stdout, onLine), readLines(child.stderr, onLine)];
   child.on('exit', (code, signal) => {
-    session.logs.flush();
+    for (const stream of output) stream.flush();
     session.exited = { code, signal };
     session.logs.appendLines([`--- engine exited with code ${code}${signal ? ` (${signal})` : ''} ---`]);
     unregisterEngine(child.pid);
@@ -227,7 +243,7 @@ export async function syncEditorConsole(session: EngineSession): Promise<void> {
 export async function discoverEditorTarget(editor: EditorConnection): Promise<{ serviceUrl?: string }> {
   const { lines } = await editorConsole(editor);
   for (let i = lines.length - 1; i >= 0; i--) {
-    const m = /Engine service started on port (\d+)/.exec(lines[i]!);
+    const m = SERVICE_PORT.exec(lines[i]!);
     if (m) {
       const url = `http://127.0.0.1:${m[1]}`;
       if (await pingEngine(url)) return { serviceUrl: url };

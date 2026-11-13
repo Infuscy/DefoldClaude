@@ -27,7 +27,7 @@ import { normalizeProjectPath } from '../env/project.js';
 import { summarizeIssues } from '../runtime/issues.js';
 import { formatLuaError, isNoise } from '../runtime/logs.js';
 import { withLock } from '../runtime/processes.js';
-import { chooseBackend, editorBuildCommand, requireInstall, requireProject, type Backend } from './common.js';
+import { chooseBackend, editorBuildCommand, requireInstall, requireProject, withBuildLock, type Backend } from './common.js';
 import { defineTool } from './registry.js';
 import { errorResult, textResult } from './result.js';
 import { runInput } from './schemas.js';
@@ -42,18 +42,22 @@ export const runTool = defineTool({
   annotations: { readOnlyHint: false },
   async handler(args, ctx) {
     const project = requireProject(args.project);
+    // Run actions go one at a time per project. The ones that build also take the build lock (always in this
+    // order, run then build), so they never overlap a build tool call; stop, command and attach do not wait for one.
     return withLock(`run:${project.root}`, async () => {
       switch (args.action) {
         case 'start': {
           const launch = launchOptions(project, args.collection, args.config);
-          return start(project, await launchBackend(project, args.backend, launch), args.wait_seconds, ctx.signal, ctx.progress, launch);
+          const backend = await launchBackend(project, args.backend, launch);
+          return withBuildLock(project, () => start(project, backend, args.wait_seconds, ctx.signal, ctx.progress, launch));
         }
         case 'restart': {
           const s = getSession(project.root);
           const previous = s?.launchConfig?.length ? { config: s.launchConfig, notes: [] } : undefined;
           const launch = launchOptions(project, args.collection, args.config) ?? previous;
           if (isRunning(s)) await stopSession(s);
-          return start(project, await launchBackend(project, args.backend, launch), args.wait_seconds, ctx.signal, ctx.progress, launch);
+          const backend = await launchBackend(project, args.backend, launch);
+          return withBuildLock(project, () => start(project, backend, args.wait_seconds, ctx.signal, ctx.progress, launch));
         }
         case 'stop': {
           const s = await currentSession(project);
@@ -62,7 +66,7 @@ export const runTool = defineTool({
           return textResult(`Stopped the game (${s.backend}).`);
         }
         case 'reload':
-          return reload(project, args.wait_seconds, ctx.signal);
+          return withBuildLock(project, () => reload(project, args.wait_seconds, ctx.signal));
         case 'attach':
           return attach(project, args.host ?? '127.0.0.1', args.port ?? 8001, args.wait_seconds);
         case 'command': {

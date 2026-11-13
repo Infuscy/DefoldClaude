@@ -64,11 +64,12 @@ async function postEdit(input: HookInput): Promise<number> {
     return 0;
   }
   // Heavy modules load only for Defold files.
-  const [{ checkFile }, { loadProject }, { loadLibraries, makeResourceChecker }, { formatIssue }] = await Promise.all([
+  const [{ checkFile }, { loadProject }, { loadLibraries, makeResourceChecker }, { formatIssue }, { locateDefold }] = await Promise.all([
     import('./ddf/checkfile.js'),
     import('./env/project.js'),
     import('./env/projectfs.js'),
     import('./runtime/issues.js'),
+    import('./env/locate.js'),
   ]);
   const project = loadProject(root);
   const resource = '/' + rel.join('/');
@@ -78,9 +79,17 @@ async function postEdit(input: HookInput): Promise<number> {
   } catch {
     exists = undefined;
   }
+  // The schema is generated for one Defold version. With another one installed, a field the schema does not know
+  // may be valid there, so it must not block (the validate and edit_resource tools make the same allowance).
+  let installedVersion: string | undefined;
+  try {
+    installedVersion = locateDefold().install?.version;
+  } catch {
+    installedVersion = undefined;
+  }
   // References to files that do not exist yet are only warnings here: Claude often writes the referencing
   // file before the file it points to. The validate tool and builds report them as errors.
-  const issues = checkFile(resource, text, { resourceExists: exists, missingRefSeverity: 'warning' });
+  const issues = checkFile(resource, text, { resourceExists: exists, missingRefSeverity: 'warning', installedVersion });
   const errors = issues.filter((i) => i.severity === 'error');
   const warnings = issues.filter((i) => i.severity === 'warning');
   if (!errors.length && !warnings.length) return 0;

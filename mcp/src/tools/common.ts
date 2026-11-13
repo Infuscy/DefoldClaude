@@ -2,6 +2,16 @@ import fs from 'node:fs';
 import { locateDefold, type DefoldInstall } from '../env/locate.js';
 import { fromResourcePath, resolveProject, type DefoldProject } from '../env/project.js';
 import { connectEditor, editorCommand, supportsBlockingCommands, type EditorBuildResult, type EditorConnection } from '../runtime/editor.js';
+import { withLock } from '../runtime/processes.js';
+
+/**
+ * One build per project at a time, whichever tool asks for it: two bob runs would write the same build/agent
+ * folder, and the editor refuses a command while another one runs. The build tool and the run actions that
+ * build (start, restart, reload) all go through here.
+ */
+export function withBuildLock<T>(project: DefoldProject, fn: () => Promise<T>): Promise<T> {
+  return withLock(`build:${project.root}`, fn);
+}
 
 /**
  * Run a build-type editor command. Right after a file changes on disk the editor can still report
