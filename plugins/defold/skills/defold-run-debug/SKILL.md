@@ -66,6 +66,9 @@ Add temporary `print("[dbg] ...", value)` lines to trace logic, read them with `
 | Input ignored | no `acquire_input_focus`; comparing `action_id` with a string; binding action name typo; another script consumed input (`return true`) |
 | Collisions ignored | group/mask mismatch (both directions), `mass` rules, events disabled, comparing `message_id` with a string |
 
+The last three rows usually come with no error at all. Run `validate` first: it reports animation names missing
+from their atlas, `action_id` values the input binding never produces and misspelled built-in message names.
+
 Use `api` for exact semantics and `docs action=search` for the manual on the subsystem.
 
 ## Notes

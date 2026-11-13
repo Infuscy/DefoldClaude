@@ -4,7 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { embeddedTypeFor, encodeEmbeddedLiteral, isEmbeddedDataField, messageToJson, printDocument } from '../../src/ddf/codec.js';
-import { checkFile } from '../../src/ddf/checkfile.js';
+import { checkFile, isCheckable, LUA_EXTENSIONS } from '../../src/ddf/checkfile.js';
+import { CrossChecker, inputBindingPath } from '../../src/ddf/crosscheck.js';
+import { parseIni } from '../../src/util/ini.js';
 import { fieldSchema, messageForResource } from '../../src/ddf/schema.js';
 import { parseTextFormat, type MessageValue } from '../../src/ddf/textformat.js';
 
@@ -76,6 +78,49 @@ describe.skipIf(!available)('corpus', () => {
       }
     }
     expect(problems).toEqual([]);
+  });
+
+  it('reports no cross-file findings on valid projects (animations, input actions, message names)', async () => {
+    // Every folder with a game.project is a project of its own; its files end where a nested project starts.
+    const roots = files.filter((f) => path.basename(f) === 'game.project').map((f) => path.dirname(f)).sort((a, b) => b.length - a.length);
+    const byRoot = new Map<string, string[]>(roots.map((r) => [r, []]));
+    for (const f of files) {
+      const root = roots.find((r) => f.startsWith(r + path.sep));
+      if (root) byRoot.get(root)!.push(f);
+    }
+    expect(roots.length).toBeGreaterThan(50);
+    // defold/examples has one handler for an action its binding never produces; the finding is correct.
+    const known = /skinning.main.instancing\.script:\d+ \[input-action\].*"EXAMPLE_1"/;
+    const problems: string[] = [];
+    let sprites = 0;
+    let inputScripts = 0;
+    for (const [root, own] of byRoot) {
+      const resource = (f: string) => '/' + path.relative(root, f).split(path.sep).join('/');
+      const cross = new CrossChecker({
+        async readText(r) {
+          const file = path.join(r.startsWith('/builtins/') ? corpus : root, r);
+          return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined;
+        },
+        inputBinding: inputBindingPath(parseIni(fs.readFileSync(path.join(root, 'game.project'), 'utf8'))),
+        luaFiles: async () => own.map(resource).filter((r) => LUA_EXTENSIONS.test(r)),
+      });
+      for (const file of own.filter((f) => isCheckable(resource(f)))) {
+        const text = fs.readFileSync(file, 'utf8');
+        const taps = cross.taps(resource(file));
+        if (/action_id\s*==/.test(text)) inputScripts++;
+        checkFile(resource(file), text, {
+          ...taps,
+          onDdfMessage: (v) => {
+            if (v.type === 'dmGameSystemDDF.SpriteDesc') sprites++;
+            taps.onDdfMessage?.(v);
+          },
+        });
+      }
+      for (const i of await cross.finish()) problems.push(`${path.join(root, i.resource!)}:${i.line} [${i.rule}] ${i.message}`);
+    }
+    expect(sprites).toBeGreaterThan(100);
+    expect(inputScripts).toBeGreaterThan(20);
+    expect(problems.filter((p) => !known.test(p))).toEqual([]);
   });
 
   it('decodes to JSON and reprints semantically identical documents', () => {

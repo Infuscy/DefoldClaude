@@ -34,7 +34,7 @@ schema, broken references), and problems are fed straight back to Claude.
   | `docs` | Search/read official manuals and examples (cached locally) |
   | `read_resource` | Any resource as JSON with embedded objects decoded; `describe` gives a type's schema |
   | `edit_resource` | `set` / `insert` / `remove` on selectors such as `/embedded_instances[id=go]/data/embedded_components[id=sprite]/data/default_animation`; validates before writing; keeps untouched bytes |
-  | `validate` | Whole-project or per-file checks without building |
+  | `validate` | Whole-project or per-file checks without building, including cross-file ones a build accepts: animation names missing from their atlas, unbound input actions, misspelled built-in messages |
   | `find_references` | Every file and line that uses a resource, folder or Lua module (`require "a.b"` too), for safe renames and deletes |
   | `build` | Compile (or resolve / clean / bundle); errors listed by file and line |
   | `run` | start / stop / restart / hot-reload / engine commands, returning early logs and Lua errors; `collection`/`config` boot a chosen collection with game.project overrides; `attach` connects to a debug build on a phone or started elsewhere and streams its log |
