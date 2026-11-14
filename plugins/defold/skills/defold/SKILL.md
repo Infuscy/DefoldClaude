@@ -22,7 +22,7 @@ docs of the Defold version actually installed, and use `docs` for concepts.
 | Concepts, how-tos, official examples | `docs` (`action=search`, then `read`) |
 | Read a scene/resource as JSON (embedded data decoded) | `read_resource` (`describe=true` gives the schema of a type) |
 | Change `.collection/.go/.gui/.atlas/...` safely | `edit_resource` (set/insert/remove, `create=true` for new files) |
-| Check files without building | `validate` |
+| Check files without building, including names that must match another file (animations, input actions, messages) | `validate` |
 | What uses a file, folder or Lua module (before renaming, moving or deleting it) | `find_references` |
 | Compile and get errors with file:line | `build` |
 | Run, stop, hot-reload, physics debug, attach to a game on a device | `run` |

@@ -6,6 +6,8 @@ import type { Issue } from '../runtime/issues.js';
 export interface LuaCheckOptions {
   /** Include lower-confidence style warnings (used by the validate tool, not by the edit hook). */
   thorough?: boolean;
+  /** Receives the parsed file, so cross-file checks need not parse it again. Not called on a syntax error. */
+  onAst?: (ast: Node) => void;
 }
 
 const LIFECYCLE = ['init', 'final', 'update', 'fixed_update', 'late_update', 'on_message', 'on_input', 'on_reload'];
@@ -25,6 +27,7 @@ export function checkLua(code: string, resource: string, options: LuaCheckOption
     const message = err.message.replace(/^\[\d+:\d+\]\s*/, '');
     return [{ severity: 'error', resource, line: err.line, column: err.column !== undefined ? err.column + 1 : undefined, message: `Lua syntax error: ${message}`, rule: 'lua-syntax' }];
   }
+  options.onAst?.(ast);
   const add = (severity: Issue['severity'], node: Node | undefined, message: string, rule: string) =>
     issues.push({ severity, resource, line: node?.loc?.start.line, column: node?.loc ? node.loc.start.column + 1 : undefined, message, rule });
 

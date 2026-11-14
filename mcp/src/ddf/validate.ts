@@ -13,6 +13,17 @@ export interface DdfContext {
   schemaMismatch?: boolean;
   /** Called for every string in a resource-path field, including those inside embedded documents. */
   onReference?: (ref: DdfReference) => void;
+  /** Called for every message with a known type, including those inside embedded documents (cross-file checks). */
+  onMessage?: (visit: DdfMessageVisit) => void;
+}
+
+export interface DdfMessageVisit {
+  type: string;
+  msg: MessageValue;
+  /** Maps a field's line inside the (possibly embedded) document to a line in the file. */
+  fileLine: (line: number) => number;
+  /** Embedded document the message sits in, e.g. "embedded component 'sprite' in game object 'go'"; '' at file level. */
+  where: string;
 }
 
 export interface DdfReference {
@@ -84,6 +95,7 @@ function walkMessage(msg: MessageValue, type: string | undefined, text: string, 
       }
     }
     semanticChecks(msg, type!, text, w);
+    w.ctx.onMessage?.({ type: type!, msg, fileLine: w.mapLine, where: w.where });
   }
 }
 

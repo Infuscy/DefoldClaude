@@ -37,6 +37,8 @@ holding one plugin (`defold`) in `plugins/defold/`. Only that folder is copied t
   `src/ddf/builtins.generated.json` (from the local editor jar).
 - `scripts/gen-fieldorder.ts` → `src/ddf/fieldorder.generated.json` (editor field order learned from corpus).
 - `scripts/gen-api-core.ts` → `plugins/defold/skills/defold/references/api-core.md`.
+- `scripts/gen-messages.ts` → `src/lua/messages.generated.json` (built-in message names from the API docs, for
+  the misspelled-message check).
 - `scripts/gen-eval-fixture.ts` → `plugins/defold/evals/_fixtures/*` (start projects for project eval cases) and
   `test/fixtures/eval-reference/<case>` (correct solutions, kept outside the plugin so evaluated agents can't
   read them; `test/unit/eval-graders.test.ts` checks the file graders accept them and reject the start state).

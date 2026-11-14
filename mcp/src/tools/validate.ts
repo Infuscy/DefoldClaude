@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { checkFile, isCheckable } from '../ddf/checkfile.js';
+import { checkFile, isCheckable, LUA_EXTENSIONS } from '../ddf/checkfile.js';
+import { CrossChecker, inputBindingPath } from '../ddf/crosscheck.js';
+import { readBuiltin } from '../env/builtins.js';
 import { locateDefold } from '../env/locate.js';
-import { loadLibraries, makeResourceChecker } from '../env/projectfs.js';
+import { loadLibraries, makeResourceChecker, readResourceText } from '../env/projectfs.js';
 import { normalizeProjectPath, toResourcePath } from '../env/project.js';
 import type { Issue } from '../runtime/issues.js';
 import { formatIssue } from '../runtime/issues.js';
@@ -16,14 +18,15 @@ export const validateTool = defineTool({
   name: 'validate',
   title: 'Validate Defold project',
   description:
-    `Check files or the whole project without building: Lua syntax and common Defold mistakes, scene file schema (unknown fields, wrong enum values, missing required fields), missing resource references, duplicate ids, GUI texture/font/layer names, and game.project keys. Faster than a build; run after larger edits.`,
+    `Check files or the whole project without building: Lua syntax and common Defold mistakes, scene file schema (unknown fields, wrong enum values, missing required fields), missing resource references, duplicate ids, GUI texture/font/layer names, and game.project keys. Also checks across files: sprite, GUI node and particle animations against their atlas or tile source, action_id comparisons against the input binding, and misspelled built-in message names. Faster than a build; run after larger edits.`,
   inputSchema: validateInput,
   annotations: { readOnlyHint: true },
   async handler(args) {
     const project = requireProject(args.project);
     const libs = await loadLibraries(project);
     const exists = makeResourceChecker(project, libs);
-    const installedVersion = locateDefold().install?.version;
+    const install = locateDefold().install;
+    const installedVersion = install?.version;
 
     const targets: string[] = [];
     if (args.paths?.length) {
@@ -35,6 +38,19 @@ export const validateTool = defineTool({
     } else {
       targets.push(...(await walkFiles(project.root, SKIP)));
     }
+
+    const luaIn = (files: string[]) => files.map((f) => toResourcePath(project, f) ?? '').filter((r) => LUA_EXTENSIONS.test(r));
+    const cross = new CrossChecker({
+      async readText(resource) {
+        try {
+          return (await readResourceText(project, resource, install ? (r) => readBuiltin(install, r) : undefined)).text;
+        } catch {
+          return undefined;
+        }
+      },
+      inputBinding: inputBindingPath(project.ini),
+      luaFiles: async () => luaIn(args.paths?.length ? await walkFiles(project.root, SKIP) : targets),
+    });
 
     const issues: Issue[] = [];
     let checked = 0;
@@ -49,8 +65,9 @@ export const validateTool = defineTool({
         continue;
       }
       checked++;
-      issues.push(...checkFile(resource, text, { resourceExists: exists, installedVersion, thorough: true }));
+      issues.push(...checkFile(resource, text, { resourceExists: exists, installedVersion, thorough: true, ...cross.taps(resource) }));
     }
+    issues.push(...(await cross.finish()));
 
     const order = { error: 0, warning: 1, info: 2 } as const;
     issues.sort((a, b) => order[a.severity] - order[b.severity] || (a.resource ?? '').localeCompare(b.resource ?? '') || (a.line ?? 0) - (b.line ?? 0));
