@@ -65,7 +65,7 @@ try {
 
   await call('run', { action: 'attach', port, wait_seconds: 2 }, /Attached to the engine at http:\/\/127\.0\.0\.1:\d+ \(Defold [\d.]+, [\w-]+\)[\s\S]*attach tick/);
   await call('logs', { grep: 'attach tick' }, /attach tick 6/);
-  await call('logs', { level: 'error' }, /Lua errors in this range \(1\):\n- \/main\/main\.script:7/);
+  await call('logs', { level: 'error' }, /Errors in this range \(1\):\n- \/main\/main\.script:7/);
   await call('inspect', { max_nodes: 20 }, /main\.script/);
   await call('run', { action: 'command', command: 'toggle_physics_debug' }, /toggle_physics_debug: /);
   const shot = await call('screenshot', { source: 'game', max_size: 256 });

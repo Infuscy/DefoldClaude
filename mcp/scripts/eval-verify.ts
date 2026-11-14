@@ -27,7 +27,7 @@ interface Expectations {
 }
 interface Outcome {
   built: boolean;
-  luaErrors: number;
+  errors: number;
   missingLogs: string[];
   colorSeen?: boolean;
   detail: string;
@@ -60,7 +60,7 @@ async function checkProject(dir: string, exp: Expectations, screenshot?: string)
   try {
     const build = await call('build');
     if (!/succeeded/.test(build.text.split('\n')[0] ?? '')) {
-      return { built: false, luaErrors: 0, missingLogs: exp.expect_log ?? [], detail: build.text.split('\n').slice(0, 4).join(' | ') };
+      return { built: false, errors: 0, missingLogs: exp.expect_log ?? [], detail: build.text.split('\n').slice(0, 4).join(' | ') };
     }
     const run = await call('run', { wait_seconds: exp.run_seconds ?? 3 });
     const logs = await call('logs', { max_lines: 500 });
@@ -73,15 +73,16 @@ async function checkProject(dir: string, exp: Expectations, screenshot?: string)
     }
     await call('run', { action: 'stop' });
     const all = `${run.text}\n${logs.text}`;
-    const counts = [...all.matchAll(/Lua errors[^(\n]*\((\d+)\)/g)].map((m) => Number(m[1]));
-    const luaErrors = counts.length ? Math.max(...counts) : 0;
-    const firstError = /^- (.+)$/m.exec(all.slice(all.search(/Lua errors[^(\n]*\(/)))?.[1];
+    // "Errors since start (12, 3 distinct):" / "Errors in this range (1):" cover Lua and engine errors alike.
+    const counts = [...all.matchAll(/^Errors [^(\n]*\((\d+)/gm)].map((m) => Number(m[1]));
+    const errors = counts.length ? Math.max(...counts) : 0;
+    const firstError = /^- (.+)$/m.exec(all.slice(all.search(/^Errors [^(\n]*\(/m)))?.[1];
     return {
       built: true,
-      luaErrors,
+      errors,
       missingLogs: (exp.expect_log ?? []).filter((s) => !all.includes(s)),
       colorSeen,
-      detail: luaErrors && firstError ? firstError.slice(0, 160) : '',
+      detail: errors && firstError ? firstError.slice(0, 160) : '',
     };
   } finally {
     await client.close();
@@ -97,9 +98,9 @@ function copyProject(src: string, dest: string): void {
   });
 }
 
-const verdict = (exp: Expectations, o: Outcome) => (o.built && o.luaErrors === 0 && !o.missingLogs.length && o.colorSeen !== false ? 'PASS' : 'FAIL');
+const verdict = (exp: Expectations, o: Outcome) => (o.built && o.errors === 0 &&!o.missingLogs.length && o.colorSeen !== false ? 'PASS' : 'FAIL');
 const row = (name: string, exp: Expectations, o: Outcome) =>
-  `${name.padEnd(34)} ${verdict(exp, o)}  build=${o.built ? 'ok' : 'FAILED'} lua_errors=${o.luaErrors}` +
+  `${name.padEnd(34)} ${verdict(exp, o)}  build=${o.built ? 'ok' : 'FAILED'} errors=${o.errors}` +
   `${o.missingLogs.length ? ` missing_log=${JSON.stringify(o.missingLogs)}` : ''}${o.colorSeen === false ? ` color_not_on_screen=${JSON.stringify(exp.expect_color)}` : ''}` +
   `${o.detail ? `\n${' '.repeat(36)}${o.detail}` : ''}`;
 

@@ -13,8 +13,9 @@ with bob into `build/agent` and launch `dmengine`. `status` shows which applies.
 
 1. `build` → fix every error it lists (`resource`, `line`, `message`). Errors in embedded components are reported
    without a file; look at the collections and game objects that embed that component type.
-2. `run action=start` builds, launches and returns the first log lines plus every Lua error with `file:line` and a
-   traceback. Fix runtime errors before anything else. To test one level or screen directly, add
+2. `run action=start` builds, launches and returns the log since the start plus every error-level line: Lua errors
+   with `file:line` and a traceback, and engine errors (`GAMEOBJECT`, `GAMESYS`, …) such as a message sent to a
+   missing object or an animation that does not exist. Fix runtime errors before anything else. To test one level or screen directly, add
    `collection=/levels/level3.collection`, and `config={"display.width": 480}` for game.project overrides of this run
    (headless engine only; `restart` keeps them, a plain `start` drops them).
 3. Observe. After any visual change, take a screenshot before you say it works. No errors does not mean the
@@ -73,8 +74,10 @@ Use `api` for exact semantics and `docs action=search` for the manual on the sub
 
 ## Notes
 
-- Lua errors in `init` appear in the `run` report immediately. Errors in `update` repeat every frame; the log
-  shows the first occurrences.
+- Errors are grouped by location and message, in the order they first happened, each with a count and the log line
+  where it first appeared. An error in `update` shows as one entry with a large count. It does not hide errors logged
+  once in `init`, and those stay listed after their log lines have scrolled away. The first entry is usually the
+  cause.
 - `print` output appears as `DEBUG:SCRIPT: …`. Release bundles strip it.
 - Screenshots need a visible (not minimized) game window on Windows. With the editor open,
   `screenshot source=preview path=/main/main.collection` renders a scene without running it.
