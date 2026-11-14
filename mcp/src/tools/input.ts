@@ -12,7 +12,7 @@ import {
   type InputReceipt,
 } from '../runtime/bridge.js';
 import { isRunning, sleep, syncEditorConsole } from '../runtime/engine.js';
-import { formatLuaError } from '../runtime/logs.js';
+import { compactLog, formatErrors, headTail } from '../runtime/logs.js';
 import { downscalePng } from '../util/png.js';
 import { requireProject } from './common.js';
 import { defineTool } from './registry.js';
@@ -93,12 +93,12 @@ export const inputTool = defineTool({
     const final = await waitForInput(session, receipt.input_id, 5000 + (args.hold ?? 0) * 1000 + args.duration * 1000);
     await sleep(args.wait_ms);
     if (session.backend === 'editor') await syncEditorConsole(session).catch(() => {});
-    const { lines } = session.logs.query({ after: cursor, max: 60 });
-    const errors = session.logs.luaErrors(cursor);
+    const { lines } = session.logs.query({ after: cursor, max: Number.POSITIVE_INFINITY });
+    const shown = headTail(compactLog(lines, { tracebacks: false }), 40, 20);
     const text = [
       `Sent ${what}: ${final.state}${final.reason ? ` (${final.reason})` : ''}.`,
-      errors.length ? `Lua errors:\n${errors.map((e) => `- ${formatLuaError(e)}`).join('\n')}` : '',
-      lines.length ? `Log since the input:\n${lines.map((l) => l.text).join('\n')}` : 'No new log output.',
+      formatErrors(session.logs.errors(cursor), { scope: 'since the input' }),
+      shown.length ? `Log since the input:\n${shown.join('\n')}` : 'No new log output.',
       `Log cursor: ${session.logs.cursor}`,
     ]
       .filter(Boolean)

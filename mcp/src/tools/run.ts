@@ -25,7 +25,7 @@ import { cacheRoot } from '../env/platform.js';
 import { locateResource } from '../env/projectfs.js';
 import { normalizeProjectPath } from '../env/project.js';
 import { summarizeIssues } from '../runtime/issues.js';
-import { formatLuaError, isNoise } from '../runtime/logs.js';
+import { compactLog, formatErrors, headTail, isNoise } from '../runtime/logs.js';
 import { withLock } from '../runtime/processes.js';
 import { chooseBackend, editorBuildCommand, requireInstall, requireProject, withBuildLock, type Backend } from './common.js';
 import { defineTool } from './registry.js';
@@ -37,7 +37,7 @@ export const runTool = defineTool({
   name: 'run',
   title: 'Run Defold game',
   description:
-    `Start, stop, restart or hot-reload the game, or send an engine command (toggle_physics_debug, toggle_profile, resize). start builds first, launches the engine (through the editor when open, else headless dmengine) and returns the first log lines plus any Lua errors seen within wait_seconds. reload pushes changed resources into the running game without restarting. collection and config start the headless engine in another collection or with game.project overrides, to test one level or screen directly. attach connects to a debug build started some other way (a phone, a debug bundle, dmengine started by hand) through its engine service at host:port and streams its log; logs, inspect, input and command then work on it.`,
+    `Start, stop, restart or hot-reload the game, or send an engine command (toggle_physics_debug, toggle_profile, resize). start builds first, launches the engine (through the editor when open, else headless dmengine) and returns the log since the start with repeats folded, plus every error-level line seen within wait_seconds (Lua and engine errors), grouped by location and message with a count. reload pushes changed resources into the running game without restarting. collection and config start the headless engine in another collection or with game.project overrides, to test one level or screen directly. attach connects to a debug build started some other way (a phone, a debug bundle, dmengine started by hand) through its engine service at host:port and streams its log; logs, inspect, input and command then work on it.`,
   inputSchema: runInput,
   annotations: { readOnlyHint: false },
   async handler(args, ctx) {
@@ -198,7 +198,7 @@ async function reload(project: DefoldProject, waitSeconds: number, signal: Abort
   if (s.backend === 'editor' && s.editor) {
     const r = await editorBuildCommand(project, s.editor, 'hot-reload', { signal });
     if (!r.success) return textResult(`Hot reload FAILED.\n${summarizeIssues(r.issues)}`);
-    return report(s, waitSeconds, 'Hot-reloaded through the Defold editor', '', fromCursor);
+    return report(s, waitSeconds, 'Hot-reloaded through the Defold editor', '', fromCursor, 'since the reload');
   }
   const install = requireInstall();
   const before = s.manifest ?? (await hashBuildOutputs(project.root));
@@ -209,7 +209,7 @@ async function reload(project: DefoldProject, waitSeconds: number, signal: Abort
   const changed = changedResources(before, after);
   if (!changed.length) return textResult('Rebuilt; no compiled resources changed, nothing to reload.');
   await reloadResources(s, changed);
-  return report(s, waitSeconds, `Hot-reloaded ${changed.length} resource(s): ${changed.join(', ')}`, '', fromCursor);
+  return report(s, waitSeconds, `Hot-reloaded ${changed.length} resource(s): ${changed.join(', ')}`, '', fromCursor, 'since the reload');
 }
 
 async function attach(project: DefoldProject, host: string, port: number, waitSeconds: number) {
@@ -220,29 +220,32 @@ async function attach(project: DefoldProject, host: string, port: number, waitSe
   const note = logError
     ? `No log stream: ${logError}. inspect and command still work.`
     : `Streaming its log from port ${logPort}. Only lines logged from now on are captured.`;
-  return report(session, waitSeconds, header, note, fromCursor);
+  return report(session, waitSeconds, header, note, fromCursor, 'since attaching');
 }
 
-/** Wait, then summarize new log lines and Lua errors since the session (re)started. */
-async function report(session: EngineSession, waitSeconds: number, header: string, extra: string, from: number) {
+/** Wait, then summarize new log lines and errors since the session (re)started. */
+async function report(session: EngineSession, waitSeconds: number, header: string, extra: string, from: number, scope = 'since start') {
   const deadline = Date.now() + waitSeconds * 1000;
   while (Date.now() < deadline && !session.exited) {
     await sleep(250);
     if (session.backend === 'editor') await syncEditorConsole(session).catch(() => {});
   }
   if (session.backend === 'editor') await syncEditorConsole(session).catch(() => {});
-  const { lines } = session.logs.query({ after: from, max: 80 });
-  const shown = lines
-    .filter((l) => !isNoise(l.text))
-    .filter((l) => !/could not be reloaded since it was never loaded before/.test(l.text))
-    .map((l) => l.text);
-  const errors = session.logs.luaErrors(from);
+  // All lines since the start: the first ones (init output and errors) matter most, so fold repeats and keep the
+  // head and tail instead of only the newest lines. Tracebacks are in the error summary.
+  const lines = session.logs
+    .query({ after: from, max: Number.POSITIVE_INFINITY })
+    .lines.filter((l) => !isNoise(l.text))
+    .filter((l) => !/could not be reloaded since it was never loaded before/.test(l.text));
+  const entries = compactLog(lines, { tracebacks: false });
+  const shown = headTail(entries, 50, 30);
   const status = session.exited ? `ENGINE EXITED (code ${session.exited.code ?? '?'})` : 'running';
+  const folded = entries.length < lines.length ? `, ${entries.length} after folding repeats` : '';
   const parts = [
     `${header}. Game is ${status}.${session.serviceUrl ? ` Engine service: ${session.serviceUrl}` : ''}`,
     extra,
-    errors.length ? `Lua errors (${errors.length}):\n${errors.slice(0, 10).map((e) => `- ${formatLuaError(e)}`).join('\n')}` : 'No Lua errors so far.',
-    shown.length ? `Log (${shown.length} lines):\n${shown.join('\n')}` : '',
+    formatErrors(session.logs.errors(from), { scope, none: 'No errors so far.' }),
+    shown.length ? `Log (${lines.length} lines${folded}):\n${shown.join('\n')}` : '',
     `Log cursor: ${session.logs.cursor} (pass to logs to get only newer lines)`,
   ];
   return textResult(parts.filter(Boolean).join('\n\n'));

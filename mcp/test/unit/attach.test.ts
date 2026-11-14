@@ -83,7 +83,7 @@ describe('run action=attach', () => {
     const logs = text(await logsTool.handler(logsInput.parse({ project: tmp }), ctx));
     expect(logs).toContain('Game running via attached');
     expect(logs).toContain('hello from the device');
-    expect(logs).toMatch(/Lua errors in this range \(1\):\n- .*main\.script:3/);
+    expect(logs).toMatch(/Errors in this range \(1\):\n- .*main\.script:3/);
 
     expect(await run({ action: 'command', command: 'toggle_physics_debug' })).toContain('toggle_physics_debug: OK');
     expect(await run({ action: 'reload' })).toMatch(/attached engine runs its own build/);
