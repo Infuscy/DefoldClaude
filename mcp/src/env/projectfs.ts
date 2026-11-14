@@ -8,7 +8,7 @@ import { projectDependencies, type DefoldProject } from './project.js';
 
 const BUILTINS = new Set<string>((builtinsJson as { files: string[] }).files);
 
-interface Library {
+export interface Library {
   zip: string;
   /** Path prefix inside the zip (the archive's root folder, e.g. "monarch-5.1.0/"). */
   prefix: string;
@@ -60,6 +60,25 @@ export async function loadLibraries(project: DefoldProject): Promise<Library[]> 
   }
   libCache.set(project.root, { stamp, libs });
   return libs;
+}
+
+/** Text of every library file whose resource path passes `filter`, opening each archive once. Unreadable archives are skipped. */
+export async function readLibraryFiles(libs: Library[], filter: (resource: string) => boolean): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const lib of libs) {
+    const wanted = [...lib.entries].filter(filter);
+    if (!wanted.length) continue;
+    let zip: ZipFile | undefined;
+    try {
+      zip = await ZipFile.open(lib.zip);
+      for (const resource of wanted) out.set(resource, await zip.readText(lib.prefix + resource.slice(1)));
+    } catch {
+      // unreadable archive
+    } finally {
+      zip?.close();
+    }
+  }
+  return out;
 }
 
 function safeStat(p: string): string {

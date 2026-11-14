@@ -2,6 +2,11 @@
 // post-edit validates Defold files right after Claude writes them; session-start announces Defold projects.
 import fs from 'node:fs';
 import path from 'node:path';
+import type { DefoldInstall } from './env/locate.js';
+import type { DefoldProject } from './env/project.js';
+import type { Library } from './env/projectfs.js';
+import type { GlobalScan } from './lua/globals.js';
+import type { Issue } from './runtime/issues.js';
 
 const DEFOLD_FILE = /\.(script|gui_script|render_script|editor_script|lua|collection|go|gui|atlas|sprite|label|collisionobject|convexshape|factory|collectionfactory|collectionproxy|sound|camera|tilesource|tileset|tilemap|tilegrid|particlefx|font|material|compute|render|render_target|display_profiles|input_binding|gamepads|texture_profiles|model|mesh|animationset|cubemap)$|(^|[\\/])game\.project$/;
 const MAX_REPORTED = 20;
@@ -64,32 +69,43 @@ async function postEdit(input: HookInput): Promise<number> {
     return 0;
   }
   // Heavy modules load only for Defold files.
-  const [{ checkFile }, { loadProject }, { loadLibraries, makeResourceChecker }, { formatIssue }, { locateDefold }] = await Promise.all([
+  const [{ checkFile }, { loadProject }, { loadLibraries, makeResourceChecker }, { formatIssue }, { locateDefold }, { scanGlobals }] = await Promise.all([
     import('./ddf/checkfile.js'),
     import('./env/project.js'),
     import('./env/projectfs.js'),
     import('./runtime/issues.js'),
     import('./env/locate.js'),
+    import('./lua/globals.js'),
   ]);
   const project = loadProject(root);
   const resource = '/' + rel.join('/');
+  let libs: Library[] = [];
   let exists: ((r: string) => boolean | undefined) | undefined;
   try {
-    exists = makeResourceChecker(project, await loadLibraries(project));
+    libs = await loadLibraries(project);
+    exists = makeResourceChecker(project, libs);
   } catch {
     exists = undefined;
   }
   // The schema is generated for one Defold version. With another one installed, a field the schema does not know
   // may be valid there, so it must not block (the validate and edit_resource tools make the same allowance).
-  let installedVersion: string | undefined;
+  let install: DefoldInstall | undefined;
   try {
-    installedVersion = locateDefold().install?.version;
+    install = locateDefold().install;
   } catch {
-    installedVersion = undefined;
+    install = undefined;
   }
   // References to files that do not exist yet are only warnings here: Claude often writes the referencing
   // file before the file it points to. The validate tool and builds report them as errors.
-  const issues = checkFile(resource, text, { resourceExists: exists, missingRefSeverity: 'warning', installedVersion });
+  let globals: GlobalScan | undefined;
+  const issues = checkFile(resource, text, {
+    resourceExists: exists,
+    missingRefSeverity: 'warning',
+    installedVersion: install?.version,
+    onLuaAst: (ast) => void (globals = scanGlobals(ast)),
+  });
+  // A failure of this optional check must not hide the findings above.
+  if (globals && install) issues.push(...(await apiIssues(project, install, libs, resource, globals).catch(() => [])));
   const errors = issues.filter((i) => i.severity === 'error');
   const warnings = issues.filter((i) => i.severity === 'warning');
   if (!errors.length && !warnings.length) return 0;
@@ -102,6 +118,47 @@ async function postEdit(input: HookInput): Promise<number> {
   }
   emitContext('PostToolUse', `Defold check for ${resource}:\n${lines.join('\n')}${more}`);
   return 0;
+}
+
+/**
+ * Calls of API functions the installed Defold does not have (warnings, never blocking). The API reference is read
+ * only when the file uses a global table such as go or vmath, and the rest of the project only when a member is
+ * still unknown, so an ordinary edit costs one cached file read. Without a readable reference the check is skipped.
+ */
+async function apiIssues(project: DefoldProject, install: DefoldInstall, libs: Library[], resource: string, globals: GlobalScan): Promise<Issue[]> {
+  const [{ unknownApiIssues, scanLuaText, isGameLua }, { loadApiNames }, { readLibraryFiles }, { PROJECT_SKIP_DIRS, toResourcePath }, { walkFiles }, { LUA_EXTENSIONS }] =
+    await Promise.all([
+      import('./lua/apicheck.js'),
+      import('./docs/apiNames.js'),
+      import('./env/projectfs.js'),
+      import('./env/project.js'),
+      import('./util/fsx.js'),
+      import('./ddf/checkfile.js'),
+    ]);
+  const lua = (r: string) => LUA_EXTENSIONS.test(r) && isGameLua(r);
+  return unknownApiIssues(new Map([[resource, globals]]), {
+    names: () => loadApiNames(install, project).catch(() => undefined),
+    async others() {
+      const scans: GlobalScan[] = [];
+      for (const file of await walkFiles(project.root, PROJECT_SKIP_DIRS)) {
+        const other = toResourcePath(project, file);
+        if (!other || other === resource || !lua(other)) continue;
+        let text: string;
+        try {
+          text = fs.readFileSync(file, 'utf8');
+        } catch {
+          continue;
+        }
+        const scan = scanLuaText(text, other);
+        if (scan) scans.push(scan);
+      }
+      for (const [other, text] of await readLibraryFiles(libs, lua)) {
+        const scan = scanLuaText(text, other);
+        if (scan) scans.push(scan);
+      }
+      return scans;
+    },
+  });
 }
 
 async function sessionStart(input: HookInput): Promise<number> {

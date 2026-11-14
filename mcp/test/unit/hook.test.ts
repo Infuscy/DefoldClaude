@@ -10,6 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const hook = path.resolve(here, '../../../plugins/defold/dist/hook.mjs');
 let root: string;
 let installs: string;
+let cache: string;
 
 /** A folder that passes for a Defold install of `version`; the hook only reads the version from its config. */
 function fakeInstall(version: string): string {
@@ -25,7 +26,7 @@ function runHook(event: string, input: object, env: Record<string, string> = {})
   const r = spawnSync(process.execPath, [hook, event], {
     input: JSON.stringify(input),
     encoding: 'utf8',
-    env: { ...process.env, DEFOLD_HOME: fakeInstall(SCHEMA_DEFOLD_VERSION), ...env },
+    env: { ...process.env, DEFOLD_HOME: fakeInstall(SCHEMA_DEFOLD_VERSION), DEFOLD_CACHE_DIR: cache, ...env },
   });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr, ms: Date.now() - started };
 }
@@ -40,7 +41,12 @@ function write(rel: string, text: string): string {
 beforeAll(() => {
   installs = fs.mkdtempSync(path.join(os.tmpdir(), 'defold installs '));
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'defold hook '));
-  write('game.project', '[project]\ntitle = Hook Test\n\n[bootstrap]\nmain_collection = /main/main.collectionc\n');
+  // A small API reference where the hook looks for the cached one (a fake install has no sha1: key "unknown").
+  cache = fs.mkdtempSync(path.join(os.tmpdir(), 'defold cache '));
+  const element = (name: string) => ({ name, type: 'FUNCTION', namespace: name.split('.')[0], brief: '', description: '', params: [], returns: [], examples: '', members: [], environment: 'runtime', source: 'test' });
+  fs.mkdirSync(path.join(cache, 'api'));
+  fs.writeFileSync(path.join(cache, 'api', 'unknown.v3.json'), JSON.stringify(['go.animate', 'go.set_position', 'table.insert', 'unpack'].map(element)));
+  write('game.project','[project]\ntitle = Hook Test\n\n[bootstrap]\nmain_collection = /main/main.collectionc\n');
   write('main/main.atlas', 'images {\n  image: "/main/logo.png"\n}\n');
   write('main/logo.png', 'x');
   write('main/main.script', 'function init(self)\nend\n');
@@ -49,6 +55,7 @@ beforeAll(() => {
 afterAll(() => {
   fs.rmSync(root, { recursive: true, force: true });
   fs.rmSync(installs, { recursive: true, force: true });
+  fs.rmSync(cache, { recursive: true, force: true });
 });
 
 describe.skipIf(!fs.existsSync(hook))('post-edit hook (built bundle)', () => {
@@ -106,6 +113,26 @@ describe.skipIf(!fs.existsSync(hook))('post-edit hook (built bundle)', () => {
     const r = runHook('post-edit', { tool_name: 'Write', tool_input: { file_path: f }, cwd: root });
     expect(r.code).toBe(0);
     expect(JSON.parse(r.stdout).hookSpecificOutput.additionalContext).toContain('hash("hit")');
+  });
+
+  it('warns about API functions the installed Defold does not have, unless the project defines them', () => {
+    write('main/util.lua', 'function go.extra() end\nreturn {}\n');
+    const f = write('main/api.script', 'function init(self)\n  go.set_position(vmath.vector3())\n  go.set_visible(".", true)\n  go.extra()\n  local a = table.unpack({})\nend\n');
+    const r = runHook('post-edit', { tool_name: 'Write', tool_input: { file_path: f }, cwd: root });
+    expect(r.code).toBe(0);
+    const context: string = JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
+    expect(context).toContain(`WARNING /main/api.script:3:3: go.set_visible does not exist in Defold ${SCHEMA_DEFOLD_VERSION}`);
+    expect(context).toContain('table.unpack does not exist');
+    expect(context).toContain('did you mean the global unpack?');
+    expect(context).not.toContain('go.extra');
+    expect(context).not.toContain('vmath');
+  });
+
+  it('skips the API check when the installed Defold has no readable API reference', () => {
+    const f = write('main/api2.script', 'function init(self)\n  go.set_visible(".", true)\nend\n');
+    const r = runHook('post-edit', { tool_name: 'Write', tool_input: { file_path: f }, cwd: root }, { DEFOLD_HOME: fakeInstall('0.0.2'), DEFOLD_CACHE_DIR: path.join(cache, 'empty') });
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe('');
   });
 
   it('treats a missing referenced file as a warning', () => {

@@ -6,6 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { embeddedTypeFor, encodeEmbeddedLiteral, isEmbeddedDataField, messageToJson, printDocument } from '../../src/ddf/codec.js';
 import { checkFile, isCheckable, LUA_EXTENSIONS } from '../../src/ddf/checkfile.js';
 import { CrossChecker, inputBindingPath } from '../../src/ddf/crosscheck.js';
+import { loadApiIndex } from '../../src/docs/apiIndex.js';
+import { apiNames } from '../../src/docs/apiNames.js';
+import { locateDefold } from '../../src/env/locate.js';
+import { scanLuaText, unknownApiIssues } from '../../src/lua/apicheck.js';
+import type { GlobalScan } from '../../src/lua/globals.js';
 import { parseIni } from '../../src/util/ini.js';
 import { fieldSchema, messageForResource } from '../../src/ddf/schema.js';
 import { parseTextFormat, type MessageValue } from '../../src/ddf/textformat.js';
@@ -121,6 +126,29 @@ describe.skipIf(!available)('corpus', () => {
     expect(sprites).toBeGreaterThan(100);
     expect(inputScripts).toBeGreaterThan(20);
     expect(problems.filter((p) => !known.test(p))).toEqual([]);
+  });
+
+  // Needs the API reference of a local Defold install.
+  const install = locateDefold().install;
+  it.skipIf(!install?.jarPath && !install?.docsPath)('uses only API members the installed Defold has (or that the project defines)', async () => {
+    const names = apiNames(await loadApiIndex(install!), [], install!.version);
+    // One group per project (nearest game.project); files outside any project (builtins) by their top folder.
+    const roots = files.filter((f) => path.basename(f) === 'game.project').map((f) => path.dirname(f)).sort((a, b) => b.length - a.length);
+    const groups = new Map<string, Map<string, GlobalScan>>();
+    let uses = 0;
+    for (const file of luaFiles) {
+      const root = roots.find((r) => file.startsWith(r + path.sep)) ?? path.join(corpus, path.relative(corpus, file).split(path.sep)[0]!);
+      const scan = scanLuaText(fs.readFileSync(file, 'utf8'), file);
+      if (!scan) continue;
+      uses += scan.uses.filter((u) => names.roots.has(u.root)).length;
+      (groups.get(root) ?? groups.set(root, new Map()).get(root)!).set(file, scan);
+    }
+    const problems: string[] = [];
+    for (const checked of groups.values()) {
+      for (const i of await unknownApiIssues(checked, { names: async () => names, others: async () => [] })) problems.push(`${i.resource}:${i.line} ${i.message}`);
+    }
+    expect(uses).toBeGreaterThan(2000);
+    expect(problems).toEqual([]);
   });
 
   it('decodes to JSON and reprints semantically identical documents', () => {

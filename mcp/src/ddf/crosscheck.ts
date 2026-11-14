@@ -1,12 +1,16 @@
 // Checks that need a second file: animation names against the atlas or tile source they are played from,
-// input actions against the game's input binding, and message names against the built-in ones and the rest of
-// the project's Lua. Most of these mistakes build fine and then do nothing at runtime.
+// input actions against the game's input binding, message names against the built-in ones and the rest of
+// the project's Lua, and API calls against the installed Defold's API reference. Most of these mistakes build fine
+// and then do nothing, or fail only when the line runs.
 //
 // The per-file pass feeds a CrossChecker through the taps it hands to checkFile; finish() then reads the
 // referenced files (once each) and reports. Whatever cannot be read or parsed is skipped, never guessed.
 import gameProjectJson from './gameproject.generated.json' with { type: 'json' };
+import type { ApiNames } from '../docs/apiNames.js';
 import type { Issue } from '../runtime/issues.js';
+import { isGameLua, scanLuaText, unknownApiIssues } from '../lua/apicheck.js';
 import type { Node } from '../lua/check.js';
+import { scanGlobals, type GlobalScan } from '../lua/globals.js';
 import { luaNames, parseLuaNames, type LuaNames, type MessageRole } from '../lua/names.js';
 import type { IniDocument } from '../util/ini.js';
 import { LUA_EXTENSIONS, type CheckOptions } from './checkfile.js';
@@ -22,6 +26,10 @@ export interface CrossSources {
   inputBinding: string;
   /** Resource paths of every Lua file in the project, for message names used across files. */
   luaFiles(): Promise<string[]>;
+  /** Names in the installed Defold's API, for calls of functions it does not have. Leave out to skip that check. */
+  apiNames?: () => Promise<ApiNames | undefined>;
+  /** Lua files of fetched libraries (resource → text), which may add members to the API tables. */
+  libraryLua?: () => Promise<Map<string, string>>;
 }
 
 /** The input binding named by [input] game_binding, as a source path (/input/game.input_binding). */
@@ -105,6 +113,8 @@ export class CrossChecker {
   private readonly animations: AnimationUse[] = [];
   /** Lua files of this run by resource; undefined for one that did not parse. */
   private readonly lua = new Map<string, LuaNames | undefined>();
+  /** Global table members each Lua file of this run uses and defines. */
+  private readonly globals = new Map<string, GlobalScan>();
   private readonly idCache = new Map<string, Promise<Set<string> | undefined>>();
 
   constructor(private readonly sources: CrossSources) {}
@@ -113,7 +123,12 @@ export class CrossChecker {
   taps(resource: string): Pick<CheckOptions, 'onDdfMessage' | 'onLuaAst'> {
     if (LUA_EXTENSIONS.test(resource)) {
       this.lua.set(resource, undefined);
-      return { onLuaAst: (ast: Node) => void this.lua.set(resource, luaNames(ast)) };
+      return {
+        onLuaAst: (ast: Node) => {
+          this.lua.set(resource, luaNames(ast));
+          this.globals.set(resource, scanGlobals(ast));
+        },
+      };
     }
     return { onDdfMessage: (visit) => this.collect(resource, visit) };
   }
@@ -219,6 +234,20 @@ export class CrossChecker {
         }
       }
     }
+
+    if (this.sources.apiNames) issues.push(...(await unknownApiIssues(this.globals, { names: this.sources.apiNames, others: () => this.otherScans() })));
     return issues;
+  }
+
+  /** Global table members used and defined by the Lua files outside this run: the rest of the project and libraries. */
+  private async otherScans(): Promise<GlobalScan[]> {
+    const scans: GlobalScan[] = [];
+    const add = (resource: string, text: string | undefined) => {
+      const scan = text === undefined || !isGameLua(resource) ? undefined : scanLuaText(text, resource);
+      if (scan) scans.push(scan);
+    };
+    for (const file of await this.sources.luaFiles()) if (!this.lua.has(file)) add(file, await this.sources.readText(file));
+    for (const [file, text] of (await this.sources.libraryLua?.()) ?? []) add(file, text);
+    return scans;
   }
 }
