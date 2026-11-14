@@ -1,8 +1,7 @@
 // Names a Lua file hands to the engine as hashes: input actions compared with action_id, and message names
 // compared with message_id or sent with msg.post. Used by the cross-file checks (ddf/crosscheck.ts).
-import luaparse from 'luaparse';
 import messagesJson from './messages.generated.json' with { type: 'json' };
-import { memberName, stringValue, walk, type Node } from './check.js';
+import { memberName, stringValue, tryParseLua, walk, type Node } from './check.js';
 
 export const BUILTIN_MESSAGES = new Set<string>((messagesJson as { messages: string[] }).messages);
 
@@ -163,9 +162,6 @@ export function luaNames(ast: Node): LuaNames {
 
 /** luaNames for source text; undefined when the file does not parse. */
 export function parseLuaNames(code: string, resource: string): LuaNames | undefined {
-  try {
-    return luaNames(luaparse.parse(code, { luaVersion: resource.endsWith('.editor_script') ? '5.2' : 'LuaJIT', locations: true, comments: false, scope: false }) as unknown as Node);
-  } catch {
-    return undefined;
-  }
+  const ast = tryParseLua(code, resource);
+  return ast && luaNames(ast);
 }

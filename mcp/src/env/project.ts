@@ -13,6 +13,9 @@ export interface DefoldProject {
 
 export class ProjectNotFoundError extends Error {}
 
+/** Folders that hold build output, editor state or tooling rather than project sources. */
+export const PROJECT_SKIP_DIRS = new Set(['build', '.internal', '.git', 'node_modules', 'bundle', '.vscode', '.idea']);
+
 const SKIP_DIRS = new Set(['node_modules', '.git', '.internal', 'build', '.svn', '.hg', '.idea', '.vscode']);
 
 /**

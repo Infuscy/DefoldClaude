@@ -56,6 +56,7 @@ Add temporary `print("[dbg] ...", value)` lines to trace logic, read them with `
 | Message | Usual cause → fix |
 |---|---|
 | `attempt to index a nil value (field/local 'x')` | variable never set (check `init`), wrong table key, or an API returned nil (e.g. `gui.get_node` id typo, `physics.raycast` miss) |
+| `attempt to call field 'x' (a nil value)` | the function does not exist in this Defold version or is misspelled (`validate` lists these); look up the right one with `api` |
 | `Could not send message 'x' from 'a' to 'b'` / `instance … could not be found` | wrong URL (relative vs absolute, missing `#component`, object already deleted, different socket) |
 | `function called can only access instances within the same collection` | `go.*` on an object in another world (proxy). Send it a message instead |
 | `'x' is not a valid property` / `property 'x' not found` | typo or wrong component (`"#sprite"` vs `"."`); check property names with `api` |
@@ -68,7 +69,8 @@ Add temporary `print("[dbg] ...", value)` lines to trace logic, read them with `
 | Collisions ignored | group/mask mismatch (both directions), `mass` rules, events disabled, comparing `message_id` with a string |
 
 The last three rows usually come with no error at all. Run `validate` first: it reports animation names missing
-from their atlas, `action_id` values the input binding never produces and misspelled built-in message names.
+from their atlas, `action_id` values the input binding never produces, misspelled built-in message names and calls
+of API functions this Defold version does not have.
 
 Use `api` for exact semantics and `docs action=search` for the manual on the subsystem.
 

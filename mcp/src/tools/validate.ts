@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { checkFile, isCheckable, LUA_EXTENSIONS } from '../ddf/checkfile.js';
 import { CrossChecker, inputBindingPath } from '../ddf/crosscheck.js';
+import { loadApiNames } from '../docs/apiNames.js';
 import { readBuiltin } from '../env/builtins.js';
 import { locateDefold } from '../env/locate.js';
-import { loadLibraries, makeResourceChecker, readResourceText } from '../env/projectfs.js';
+import { loadLibraries, makeResourceChecker, readLibraryFiles, readResourceText } from '../env/projectfs.js';
 import { normalizeProjectPath, toResourcePath } from '../env/project.js';
 import type { Issue } from '../runtime/issues.js';
 import { formatIssue } from '../runtime/issues.js';
@@ -18,7 +19,7 @@ export const validateTool = defineTool({
   name: 'validate',
   title: 'Validate Defold project',
   description:
-    `Check files or the whole project without building: Lua syntax and common Defold mistakes, scene file schema (unknown fields, wrong enum values, missing required fields), missing resource references, duplicate ids, GUI texture/font/layer names, and game.project keys. Also checks across files: sprite, GUI node and particle animations against their atlas or tile source, action_id comparisons against the input binding, and misspelled built-in message names. Faster than a build; run after larger edits.`,
+    `Check files or the whole project without building: Lua syntax and common Defold mistakes, scene file schema (unknown fields, wrong enum values, missing required fields), missing resource references, duplicate ids, GUI texture/font/layer names, and game.project keys. Also checks across files: sprite, GUI node and particle animations against their atlas or tile source, action_id comparisons against the input binding, misspelled built-in message names, and calls of functions the installed Defold does not have (go.set_visible, table.unpack; members the project defines itself are allowed). Faster than a build; run after larger edits.`,
   inputSchema: validateInput,
   annotations: { readOnlyHint: true },
   async handler(args) {
@@ -50,6 +51,8 @@ export const validateTool = defineTool({
       },
       inputBinding: inputBindingPath(project.ini),
       luaFiles: async () => luaIn(args.paths?.length ? await walkFiles(project.root, SKIP) : targets),
+      apiNames: install ? () => loadApiNames(install, project).catch(() => undefined) : undefined,
+      libraryLua: () => readLibraryFiles(libs, (r) => LUA_EXTENSIONS.test(r)),
     });
 
     const issues: Issue[] = [];

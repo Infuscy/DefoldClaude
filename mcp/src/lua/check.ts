@@ -16,12 +16,30 @@ const RENDER_LIFECYCLE = ['init', 'update', 'on_message', 'on_reload'];
 
 export type Node = { type: string; [key: string]: unknown; loc?: { start: { line: number; column: number } } };
 
+/**
+ * Parse a Lua file (LuaJIT grammar; Lua 5.2 for editor scripts). Scope tracking marks every Identifier that refers
+ * to a local with `isLocal: true`, so a global table such as `go` can be told apart from a local of the same name.
+ * Throws luaparse's error on a syntax error.
+ */
+export function parseLua(code: string, resource: string): Node {
+  return luaparse.parse(code, { luaVersion: resource.endsWith('.editor_script') ? '5.2' : 'LuaJIT', locations: true, comments: false, scope: true }) as unknown as Node;
+}
+
+/** parseLua, or undefined when the file does not parse. */
+export function tryParseLua(code: string, resource: string): Node | undefined {
+  try {
+    return parseLua(code, resource);
+  } catch {
+    return undefined;
+  }
+}
+
 export function checkLua(code: string, resource: string, options: LuaCheckOptions = {}): Issue[] {
   const issues: Issue[] = [];
   const ext = resource.slice(resource.lastIndexOf('.') + 1);
   let ast: Node;
   try {
-    ast = luaparse.parse(code, { luaVersion: ext === 'editor_script' ? '5.2' : 'LuaJIT', locations: true, comments: false, scope: false }) as unknown as Node;
+    ast = parseLua(code, resource);
   } catch (e) {
     const err = e as { message: string; line?: number; column?: number };
     const message = err.message.replace(/^\[\d+:\d+\]\s*/, '');
@@ -103,7 +121,8 @@ export function walk(node: Node, ancestors: Node[], visit: (n: Node, ancestors: 
   visit(node, ancestors);
   const next = [...ancestors, node];
   for (const key of Object.keys(node)) {
-    if (key === 'loc' || key === 'range') continue;
+    // `globals` (scope tracking) lists the chunk's global identifiers a second time, outside the tree.
+    if (key === 'loc' || key === 'range' || key === 'globals') continue;
     const v = node[key];
     if (Array.isArray(v)) {
       for (const c of v) if (c && typeof c === 'object' && 'type' in c) walk(c as Node, next, visit);
